@@ -1,59 +1,118 @@
-# Introduction to GitHub
 
-<!-- ![](https://github.com/ChrisEscS/Models-function/actions/workflows/0-start-exercise.yml/badge.svg) -->
-![](https://github.com/ChrisEscS/Models-function/actions/workflows/1-create-a-branch.yml/badge.svg)
-![](https://github.com/ChrisEscS/Models-function/actions/workflows/2-commit-a-file.yml/badge.svg)
-![](https://github.com/ChrisEscS/Models-function/actions/workflows/3-open-a-pull-request.yml/badge.svg)
-![](https://github.com/ChrisEscS/Models-function/actions/workflows/4-merge-your-pull-request.yml/badge.svg)
+# Espiga
 
-_Get started using GitHub in less than an hour._
+Overview
 
-## Welcome
+**Spiga** is an R package that unifies widely used advanced predictive algorithms under a simple and consistent interface. The goal is to remove the technical barrier to using complex machine learning methods 
+and statistical techniques, allowing researchers and data analysts to focus on interpreting results rather than implementing algorithms.
 
-People use GitHub to build some of the most advanced technologies in the world. Whether you’re visualizing data or building a new game, there’s a whole community and set of tools on GitHub that can help you do it even better. GitHub Skills’ “Introduction to GitHub” exercise guides you through everything you need to start contributing in less than an hour.
+Espiga consists of tools designed to predict a target feature using widely used algorithms. The package includes methods such as boosting, Bayesian approaches, and linear models.
 
-- **Who is this for**: New developers, new GitHub users, and students.
-- **What you'll learn**: We'll introduce repositories, branches, commits, and pull requests.
-- **What you'll build**: We'll make a short Markdown file you can use as your [profile README](https://docs.github.com/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme).
-- **Prerequisites**: None. This exercise is a great introduction for your first day on GitHub.
-- **How long**: This exercise takes less than one hour to complete.
+It is designed for ease of use, simplifying the processes of input, model optimization, statistical analysis, and output reporting. The functions are flexible enough to allow users to adjust hyperparameters according to their specific objectives.
 
-In this exercise, you will:
+## Instalación
 
-1. Create a branch
-2. Commit a file
-3. Open a pull request
-4. Merge your pull request
+```r
+# Desde GitHub
+devtools::install_github("yourusername/espiga")
 
-### How to start this exercise
+# Cuando esté disponible en CRAN
+# install.packages("espiga")
+```
 
-1. Right-click **Copy Exercise** and open the link in a new tab.
+## Métodos Predictivos Incluidos
 
-   <a id="copy-exercise">
-      <img src="https://img.shields.io/badge/📠_Copy_Exercise-AAA" height="25pt"/>
-   </a>
+Espiga integra los siguientes métodos predictivos bajo una sintaxis unificada:
 
-2. In the new tab, most of the prompts will automatically fill in for you.
-   - For owner, choose your personal account or an organization to host the repository.
-   - We recommend creating a public repository, as private repositories will [use Actions minutes](https://docs.github.chttps://github.com/ChrisEscS/Models-function/billing/managing-billing-for-github-actions/about-billing-for-github-actions).
-   - Scroll down and click the **Create repository** button at the bottom of the form.
+| Método | Características | Ideal para | Referencia original |
+|--------|----------------|------------|---------------------|
+| **XGBoost** | Algoritmo basado en árboles con boosting de gradiente extremo | Excelente rendimiento general, datos complejos | Chen & Guestrin (2016). XGBoost: A Scalable Tree Boosting System |
+| **GradientBoost** | Técnica de ensamblaje secuencial | Mejora iterativa del modelo | Friedman (2001). Greedy Function Approximation: A Gradient Boosting Machine |
+| **CatBoost** | Optimizado para variables categóricas | Datos con muchas categorías sin necesidad de codificación previa | Prokhorenkova et al. (2018). CatBoost: unbiased boosting with categorical features |
+| **PCR** (Principal Component Regression) | Combina PCA con regresión | Datos con alta dimensionalidad y colinealidad | Massy (1965). Principal Components Regression in Exploratory Statistical Research |
+| **Random Forest** | Ensamblaje de árboles de decisión | Robustez contra sobreajuste, manejo de no linealidad | Breiman (2001). Random Forests |
+| **Bayesian A** | Enfoque bayesiano adaptativo | Cuantificación de incertidumbre, datos complejos | Clyde et al. (2011). Bayesian Adaptive Sampling for Variable Selection and Model Averaging |
+| **Bayesian Lasso** | Regularización bayesiana tipo Lasso | Selección de variables con enfoque probabilístico | Park & Casella (2008). The Bayesian Lasso |
+| **Bayesian Ridge** | Regularización bayesiana tipo Ridge | Manejo de multicolinealidad con enfoque bayesiano | Tipping (2001). Sparse Bayesian Learning and the Relevance Vector Machine |
+| **Linear Lasso** | Regresión con regularización L1 | Selección automática de variables | Tibshirani (1996). Regression Shrinkage and Selection via the Lasso |
+| **Linear Ridge** | Regresión con regularización L2 | Control de varianza en predictores colineales | Hoerl & Kennard (1970). Ridge Regression: Biased Estimation for Nonorthogonal Problems |
+| **Linear ElasticNet** | Combinación de regularización L1 y L2 | Balance entre selección de variables y control de varianza | Zou & Hastie (2005). Regularization and Variable Selection via the Elastic Net |
 
-3. After your new repository is created, wait about 20 seconds for the exercise to be prepared and buttons updated. You will continue working from your copy of the exercise.
-   - The **Copy Exercise** button will deactivate, changing to gray.
-   - The **Start Exercise** button will activate, changing to green.
-   - You will likely need to refresh the page.
+## Ejemplo de Uso
 
-4. Click **Start Exercise**. Follow the step-by-step instructions and feedback will be provided as you progress.
+Espiga simplifica la aplicación de métodos complejos con una sintaxis consistente:
 
-   <a id="start-exercise" href="https://github.com/ChrisEscS/Models-function/issues/1">
-      <img src="https://img.shields.io/badge/🚀_Start_Exercise-008000" height="25pt"/>
-   </a>
+```r
+library(espiga)
 
-> [!IMPORTANT]
-> The **Start Exercise** button will activate after copying the repository. You will probably need to refresh the page.
+# Cargar datos
+data(mtcars)
 
----
+# Dividir datos en entrenamiento y prueba
+set.seed(123)
+indices <- sample(1:nrow(mtcars), size = 0.7*nrow(mtcars))
+train_data <- mtcars[indices, ]
+test_data <- mtcars[-indices, ]
 
-Get help: [Post in our discussion board](https://github.com/orgs/skills/discussions/categories/introduction-to-github) &bull; [Review the GitHub status page](https://www.githubstatus.com/)
+# Ajustar múltiples modelos con una sintaxis unificada
+modelos <- espiga_fit(
+  data = train_data,
+  target = "mpg",
+  methods = c("xgboost", "random_forest", "bayesian_ridge", "linear_elasticnet"),
+  validation = "cv",  # Validación cruzada
+  folds = 5
+)
 
-&copy; 2024 GitHub &bull; [Code of Conduct](https://www.contributor-covenant.org/version/2/1/code_of_conduct/code_of_conduct.md) &bull; [MIT License](https://gh.io/mit)
+# Comparar rendimiento
+resultados <- compare_models(modelos)
+plot_model_comparison(resultados)
+
+# Predecir con el mejor modelo
+predicciones <- predict(modelos$best_model, test_data)
+
+# Explicabilidad del modelo (para métodos compatibles)
+importance <- variable_importance(modelos$xgboost)
+plot_importance(importance)
+```
+
+## Características Principales
+
+### 1. Interfaz Unificada
+Todos los métodos predictivos comparten la misma estructura de comandos, lo que elimina la necesidad de aprender múltiples sintaxis.
+
+### 2. Selección Automática de Hiperparámetros
+Espiga incluye optimización automática de hiperparámetros para cada método, eliminando la necesidad de ajuste manual.
+
+### 3. Comparación de Rendimiento
+Herramientas integradas para comparar el rendimiento de múltiples modelos con métricas estándar (RMSE, MAE, R², etc.).
+
+### 4. Diagnóstico Visual
+Funciones para visualizar resultados, importancia de variables y comportamiento del modelo.
+
+### 5. Manejo Inteligente de Datos
+Preprocesamiento automático adaptado a los requisitos de cada método predictivo.
+
+## Casos de Uso Típicos
+
+- **Investigación científica**: Modelado predictivo con enfoque en la interpretabilidad
+- **Análisis de datos empresariales**: Predicción de métricas clave con comparación de métodos
+- **Bioinformática**: Análisis de datos genómicos y proteómicos
+- **Economía y finanzas**: Predicción de series temporales e indicadores
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Por favor, consulta el archivo [CONTRIBUTING.md](CONTRIBUTING.md) para más detalles.
+
+## Citar
+
+Si utilizas Espiga en tu investigación, por favor cítalo como:
+
+```
+Paper
+```
+
+## Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT - vea el archivo [LICENSE.md](LICENSE.md) para más detalles.
+```
+
