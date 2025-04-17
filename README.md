@@ -1,3 +1,4 @@
+<code style="color : red"> Note for collaborators: The functions are not compiled in a R package yet. There is an R script example in the main folder with its respective enviroment, where i make use of all functions. Also in the folder "Functions" you can find each tool individually </code>  
 
 # Espiga
 
