@@ -3,7 +3,7 @@
 
 ## Overview
 
-**Spiga** is an R package that unifies widely used advanced predictive algorithms under a simple and consistent interface. The package includes methods such as boosting, Bayesian approaches, and linear models.
+**Espiga** is an R package that unifies widely used advanced predictive algorithms under a simple and consistent interface. The package includes methods such as boosting, Bayesian approaches, and linear models.
 The goal is to remove the technical barrier to using complex machine learning methods and statistical techniques, allowing researchers and data analysts to focus on interpreting results rather than implementing algorithms.
 It is designed for ease of use, simplifying the processes of input, model optimization, statistical analysis, and output reporting. The functions are flexible enough to allow users to adjust hyperparameters according to their specific objectives.
 
