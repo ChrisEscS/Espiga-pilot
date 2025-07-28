@@ -77,9 +77,8 @@ Paper
 
 The optimization and the selection of representative predictor variables and statistical optimization for mixed models is a constant problem for the reseracher.  As part of its toolkit, we developed functions that automates those process using linear mixed models fitted with ASReml. The start of the process is select optimal variables and avoid the multicolineality, using as reference a correlation matrix. Espiga evaluates exhaustive each selected variable and combination, based on statistical and genetic criteria—including AIC, BIC, heritability, reliability, and both R-squared and adjusted R-squared helping to get the best optimized model according with those statistics. Espiga reduce dimensionality problem, allows the automatization while preserving predictive power and reducing the computational cost.
 
-
-## Example selected variables 
-###1. Dummy dataframe
+## Example 
+### 1. Dummy dataframe
 ```r
 library(dplyr)
 library(asreml)
@@ -102,7 +101,7 @@ dummy_data <- data.frame(
   mboost = rnorm(n_obs, mean = 80, sd = 5)
 )
 ```
-###2. Select variables
+### 2. Select variables
 ```r
 variables_candidates <- c("catboost", "xgboost", "mboost", "rf", "pcr", 
                           "bayesA", "bayesL", "bayesR", "ll", "le", "lr",  
@@ -126,7 +125,7 @@ rep <- select_representatives(data = dummy_data, response_var = "Grain.yield", v
 #"R sq" = "R2",
 #"R sq adjusted" = "R2_adj")
 ```
-###3. Optimize the model.
+### 3. Optimize the model.
 
 The function will run each possible combinations of variables and it will storage the models and results with best model according with the different criterions 
 ```r
