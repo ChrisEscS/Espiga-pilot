@@ -1,0 +1,90 @@
+---
+title: "Untitled"
+author: "Christian Escoto"
+date: "2025-07-28"
+output: pdf_document
+---
+Dummy dataframe
+```{r}
+library(dplyr)
+library(asreml)
+
+set.seed(123)
+#Dummy data
+n_genotypes <- 20
+n_reps <- 3
+n_obs <- n_genotypes * n_reps
+
+# Create basic structure
+dummy_data <- data.frame(
+  geno = factor(rep(1:n_genotypes, each = n_reps)),
+  Rep = factor(rep(1:n_reps, times = n_genotypes)),
+  units = 1:n_obs,
+  Grain.yield = rnorm(n_obs, mean = 100, sd = 10),  # response variable
+  NDVI = rnorm(n_obs, 0.6, 0.05),
+  GNDVI = rnorm(n_obs, 0.5, 0.05),
+  catboost = rnorm(n_obs, mean = 90, sd = 10),
+  mboost = rnorm(n_obs, mean = 80, sd = 5)
+)
+
+
+```
+
+
+Select variables
+
+```{r}
+variables_candidates <- c("NDVI", "GNDVI", "catboost", "mboost")
+edit(analyze_correlations)
+#Assign groups according correlation matrix
+cor<-analyze_correlations(dummy_data, variables_candidates, cut.off = 0.3, correlation = 0.9)
+
+#Define elements
+random_effects <- "~ idv(Rep) + geno"
+residual<-"~ id(units)"
+
+# Function to select variables that give better results according with certain criteria 
+rep <- select_representatives(data = dummy_data, response_var = "Grain.yield", variable_groups = cor$variable_groups, random_effects, residual, criterion = "R sq adjusted")
+
+#Note: Dependign of the criteria that you want to use, you need to use this input
+#"AIC" = "aic"
+#"BIC" = "bic",
+#"heritability" = "heritability",
+#"reliability" = "reliability",
+#"R sq" = "R2",
+#"R sq adjusted" = "R2_adj")
+```
+
+
+Optimize the model 
+The function will run each possible combinations of variables and it will storage the models and results with best model according with the different criterions
+```{r}
+optim <- optimize_model(dummy_data, response_var= "Grain.yield", rep$representatives, random_effects, residual)
+
+#Check all the results
+optim$results_df
+
+#Check results of the best model by criteria
+optim$best_model_aic # Here the criteria is AIC
+# If you want to see the results with other criterias
+# best_model_bic = "BIC"
+# best_model_her = "Heritability"
+# best_model_r2 = "R^2"
+# best_model_adj_r2 = "R^2 adjusted"
+# best_model_rel = "Reliability"
+
+#Get the model
+model<-optim$best_model_aic_fit
+# If you want the model with other criterias
+# best_model_bic_fit = "BIC"
+# best_model_her_fit = "Heritability"
+# best_model_r2_fit = "R^2"
+# best_model_adj_r2_fit = "R^2 adjusted"
+# best_model_rel_fit = "Reliability"
+```
+
+
+
+
+
+
