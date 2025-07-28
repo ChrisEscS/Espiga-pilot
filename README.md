@@ -103,15 +103,13 @@ dummy_data <- data.frame(
 ```
 ### 2. Select variables
 ```r
-variables_candidates <- c("catboost", "xgboost", "mboost", "rf", "pcr", 
-                          "bayesA", "bayesL", "bayesR", "ll", "le", "lr",  
-                          "NDVI_mean", "EVI_mean", "GNDVI_mean")
+variables_candidates <- c("NDVI", "GNDVI", "catboost", "mboost")
 
-#Assign groups according correlation matrix
-cor<-analyze_correlations(N23.All, variables_candidates)
+#Assign groups according correlation matrix  (You can tuning the function with your statistical requirements)
+cor<-analyze_correlations(dummy_data, variables_candidates,  cut.off = 0.3, correlation = 0.9)
 
 #Define elements
-random_effects <- "~ blockNumber + geno"
+random_effects <- "~ idv(Rep) + geno"
 residual<-"~ id(units)"
 
 # Function to select variables that give better results according with certain criteria 
@@ -129,7 +127,7 @@ rep <- select_representatives(data = dummy_data, response_var = "Grain.yield", v
 
 The function will run each possible combinations of variables and it will storage the models and results with best model according with the different criterions 
 ```r
-optim <- optimize_model(dummy.data, response_var= Grain.yield, rep_selection$representatives, random_effects, residual)
+optim <- optimize_model(dummy_data, response_var= "Grain.yield", rep$representatives, random_effects, residual)
 
 #Check all the results
 optim$results_df
@@ -144,7 +142,7 @@ optim$best_model_aic # Here the criteria is AIC
 # best_model_rel = "Reliability"
 
 #Get the model
-optim$best_model_aic_fit 
+model<-optim$best_model_aic_fit
 # If you want the model with other criterias
 # best_model_bic_fit = "BIC"
 # best_model_her_fit = "Heritability"
