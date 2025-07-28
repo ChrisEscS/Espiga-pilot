@@ -6,7 +6,7 @@
 
 # Espiga
 
-## Overview
+## Prediction overview
 
 **Espiga** is an R package that unifies widely used advanced predictive algorithms under a simple and consistent interface. The package includes methods such as boosting, Bayesian approaches, and linear models.
 The goal is to remove the technical barrier to using complex machine learning methods and statistical techniques, allowing researchers and data analysts to focus on interpreting results rather than implementing algorithms.
@@ -73,6 +73,7 @@ If you use Espiga in your research, please cite it as:
 ```
 Paper
 ```
+## Mixed model overview
 
 The optimization and the selection of representative predictor variables and statistical optimization for mixed models is a constant problem for the reseracher.  As part of its toolkit, we developed functions that automates those process using linear mixed models fitted with ASReml. The start of the process is select optimal variables and avoid the multicolineality, using as reference a correlation matrix. Espiga evaluates exhaustive each selected variable and combination, based on statistical and genetic criteria—including AIC, BIC, heritability, reliability, and both R-squared and adjusted R-squared helping to get the best optimized model according with those statistics. Espiga reduce dimensionality problem, allows the automatization while preserving predictive power and reducing the computational cost.
 
