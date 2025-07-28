@@ -79,7 +79,7 @@ The optimization and the selection of representative predictor variables and sta
 
 
 ## Example selected variables 
-1. Dummy dataframe
+###1. Dummy dataframe
 ```r
 library(dplyr)
 library(asreml)
@@ -102,7 +102,7 @@ dummy_data <- data.frame(
   mboost = rnorm(n_obs, mean = 80, sd = 5)
 )
 ```
-2. Select variables
+###2. Select variables
 ```r
 variables_candidates <- c("catboost", "xgboost", "mboost", "rf", "pcr", 
                           "bayesA", "bayesL", "bayesR", "ll", "le", "lr",  
@@ -126,7 +126,8 @@ rep <- select_representatives(data = dummy_data, response_var = "Grain.yield", v
 #"R sq" = "R2",
 #"R sq adjusted" = "R2_adj")
 ```
-3. Optimize the model
+###3. Optimize the model.
+
 The function will run each possible combinations of variables and it will storage the models and results with best model according with the different criterions 
 ```r
 optim <- optimize_model(dummy.data, response_var= Grain.yield, rep_selection$representatives, random_effects, residual)
