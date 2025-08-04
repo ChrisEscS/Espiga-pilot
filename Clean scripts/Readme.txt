@@ -4,6 +4,14 @@ This repository contains all the scripts and resources used during the analysis 
 
 
 ## Structure
+All.csv - Contain all data information.
+GDDs.Rmd - GDD calculation for each flight.
+GDDs.envi.RData- GDD's R enviromemt. 
+Indexes - Calculation of plant indexes and impuntation using as reference the GDDs.
+Within 20 - Grain yield imputation with 20% as training data.
+Within 20 model- Mixed model 20% training data.
+Within mask - Grain yield imputation with reciprocal 50% as training data and 50% as test data.
+WithinAll- Grain yield imputation with training data from all location.
 
 
 ## Objetives
