@@ -1,0 +1,701 @@
+---
+title: "Temperature and dates"
+author: "Christian Escoto"
+date: "2025-06-11"
+output: pdf_document
+---
+
+## Packages
+```{r libraries, include=FALSE}
+library(dplyr)
+library(Matrix)
+library(xgboost)
+library(caret)
+library(purrr)
+library(ggplot2)
+library(reshape2)
+library(viridis)
+library(tidyr)
+library(ggExtra)
+library(openmeteo)
+
+```
+
+
+## Data preparation
+We have separatly the data 
+
+```{r temperature}
+
+termStP22<-read.csv("Temp St.Peter 2022.csv")
+termStP23<-read.csv("Temp St.Peter 2023.csv")
+
+termUrb22<-read.csv("Temp Urbana 2022.csv")
+termUrb23<-read.csv("Temp Urbana 2023.csv")
+
+termNeo22<-read.csv("Temp Neoga 2022.csv")
+termNeo23<-read.csv("Temp Neoga 2023.csv")
+```
+
+Reshape the data for the analysis
+```{r reshape}
+# Reshape the data
+termStP22 <- termStP22 %>%
+  pivot_wider(names_from = y, values_from = x)
+
+termStP23 <- termStP23 %>%
+  pivot_wider(names_from = y, values_from = x)
+
+termUrb22 <- termUrb22 %>%
+  pivot_wider(names_from = y, values_from = x)
+
+termUrb23 <- termUrb23 %>%
+  pivot_wider(names_from = y, values_from = x)
+
+termNeo22 <- termNeo22 %>%
+  pivot_wider(names_from = y, values_from = x)
+
+termNeo23 <- termNeo23 %>%
+  pivot_wider(names_from = y, values_from = x)
+
+```
+
+Define the function to calculate GDD 
+```{r Define the GDD function}
+gdd_calculator <- function(loc, plntDate, dates) {
+  library(purrr)
+  
+  gdd_calculator_helper <- function(date) {
+    temps <- as.data.frame(weather_history(
+      location = loc,
+      start = plntDate,
+      end = date,
+      daily = c("temperature_2m_max", "temperature_2m_min")
+    ))
+    vec <- (temps[, 2] + temps[, 3]) / 2
+    vec[which(vec < 0)] <- 0
+    a_gdd <- sum(vec)
+    return(a_gdd)
+  }
+  
+  return(map_dbl(dates, gdd_calculator_helper))
+}
+```
+
+
+Function to calculate temperature according with dates and coordinates
+```{r}
+thermTimeprofile <- function(loc = c(39.31948, -88.45283), plntDate = "2021-10-22", date = "2022-08-14") {
+  # Retrieve weather data
+  temps <- as.data.frame(weather_history(
+    location = loc,
+    start = plntDate,
+    end = date,
+    hourly = 'temperature_2m'
+  ))
+  
+  # Clean data
+  temps <- na.omit(temps)
+  temps$date <- as.Date(substr(as.character(temps[, 1]), 1, 10))
+  temps$time <- trimws(gsub("^\\s*|\\s*$", "", as.character(temps[, 1])))
+  
+  # Combine date and time
+  temps <- temps %>%
+    mutate(
+      hour = if_else(grepl(':', time), time, paste(time, "00:00:00")),
+      julian = yday(date),
+      temps = as.numeric(temps[, 2])
+    )
+  
+  # Adjust Julian day for year change
+  julian_one_exists <- any(temps$julian == 1)
+  
+  if (julian_one_exists) {
+    temps[1:min(which(temps$julian == 1)) - 1, 'julian'] <- temps[1:min(which(temps$julian == 1)) - 1, 'julian'] - 365
+  } else {
+    warning("Julian day 1 not found in the data. Adjustments for year change will not be made.")
+  }
+  
+  # Temperature thresholds function
+  threshold_temps <- function(temp, lower, upper) {
+    temp[temp < lower] <- 0
+    temp[temp > upper] <- upper
+    return(temp)
+  }
+  
+  temps <- temps %>%
+    mutate(
+      temps0.26 = threshold_temps(temps, 0, 26),
+      temps5.26 = threshold_temps(temps, 5, 26)
+    )
+  
+  # Daily averages
+  avgTbl <- temps %>%
+    group_by(julian, date) %>%
+    summarise(
+      temps_mean = mean(temps, na.rm = TRUE),
+      temps0.26_mean = mean(temps0.26, na.rm = TRUE),
+      temps5.26_mean = mean(temps5.26, na.rm = TRUE),
+      .groups = 'drop'
+    )
+  
+  # Cumulative values
+  avgTbl <- avgTbl %>%
+    mutate(
+      cuml0.26 = cumsum(temps0.26_mean),
+      cuml5.26 = cumsum(temps5.26_mean)
+    )
+  
+  return(avgTbl)
+}
+
+```
+
+Calculation of temperature and GDD, using the location and date as reference 
+```{r pressure, echo=FALSE}
+library(openmeteo)
+library(purrr)  
+library(lubridate)
+
+dates_Neo22 <- seq(from = as.Date("2022-01-20"), to = as.Date("2022-07-16"), by = "day")
+Neo22_temp<-thermTimeprofile(loc=c(39.23248,-88.37806),  plntDate="2022-01-20", date="2022-07-16")
+Neo22_temp$gdd<-NULL
+Neo22_temp$gdd<-gdd_calculator(loc=c(39.23248,-88.37806),  plntDate="2022-01-20", date=dates_Neo22)
+
+dates_Neo23 <- seq(from = as.Date("2023-01-08"), to = as.Date("2023-07-16"), by = "day")
+Neo23_temp<-thermTimeprofile(loc=c(39.23248,-88.37806),  plntDate="2023-01-08", date="2023-07-16")
+Neo23_temp$gdd<-NULL
+Neo23_temp$gdd<-gdd_calculator(loc=c(39.23248,-88.37806),  plntDate="2023-01-08", date=dates_Neo23)
+
+
+
+dates_Urb22 <- seq(from = as.Date("2021-12-27"), to = as.Date("2022-07-16"), by = "day")
+Urb22_temp<-thermTimeprofile(loc=c(39.31948,-88.45283),  plntDate="2021-12-27", date="2022-07-16")
+Urb22_temp$gdd<-NULL
+Urb22_temp$gdd<-gdd_calculator(loc=c(39.31948,-88.45283),  plntDate="2021-12-27", date=dates_Urb22)
+
+dates_Urb23 <- seq(from = as.Date("2022-12-29"), to = as.Date("2023-07-16"), by = "day")
+Urb23_temp<-thermTimeprofile(loc=c(39.31948,-88.45283),  plntDate="2022-12-29", date="2023-07-16")
+Urb23_temp$gdd<-NULL
+Urb23_temp$gdd<-gdd_calculator(loc=c(39.31948,-88.45283),  plntDate="2022-12-29", date=dates_Urb23)
+
+
+dates_StP22 <- seq(from = as.Date("2021-12-28"), to = as.Date("2022-07-16"), by = "day")
+StP22_temp<-thermTimeprofile(loc=c(38.87208, -88.88265),  plntDate="2021-12-28", date="2022-07-16")
+StP22_temp$gdd<-NULL
+StP22_temp$gdd<-gdd_calculator(loc=c(38.87208, -88.88265),  plntDate="2021-12-28", date=dates_StP22)
+
+
+dates_StP23 <- seq(from = as.Date("2023-01-16"), to = as.Date("2023-07-16"), by = "day")
+StP23_temp<-thermTimeprofile(loc=c(38.90354, -88.87827),  plntDate="2023-01-16", date="2023-07-16")
+StP23_temp$gdd<-NULL
+StP23_temp$gdd<-gdd_calculator(loc=c(38.90354, -88.87827),  plntDate="2023-01-16", date=dates_StP23)
+
+
+```
+
+
+
+
+```{r}
+# Define the Julian values to keep
+julian_Neo22 <- c(104, 117, 124, 130, 132, 137, 151, 164, 165)
+
+# Filter the data
+Neo22_flights <- Neo22_temp %>%
+  filter(julian %in% julian_Neo22)
+
+# Define the Julian values to keep
+julian_Neo23 <- c(52, 96, 103,  114, 123, 129, 137, 152, 156, 164)
+
+# Filter the data
+Neo23_flights <- Neo23_temp %>%
+  filter(julian %in% julian_Neo23)
+
+# Define the Julian values to keep
+julian_Urb22 <- c(106, 122, 127,  133, 139, 143, 148, 154, 160, 166)
+
+# Filter the data
+Urb22_flights <- Urb22_temp %>%
+  filter(julian %in% julian_Urb22)
+
+
+# Define the Julian values to keep
+julian_Urb23 <- c(61, 97, 102, 116, 124, 130, 138, 150, 159, 165)
+
+# Filter the data
+Urb23_flights <- Urb23_temp %>%
+  filter(julian %in% julian_Urb23)
+
+
+# Define the Julian values to keep
+julian_StP22 <- c(104, 117, 124, 130, 132, 137, 151, 165)
+
+# Filter the data
+StP22_flights <- StP22_temp %>%
+  filter(julian %in% julian_StP22)
+
+
+# Define the Julian values to keep
+julian_StP23 <- c(52,74,96,103,114, 123, 129, 137, 152, 156, 164)
+
+# Filter the data
+StP23_flights <- StP23_temp %>%
+  filter(julian %in% julian_StP23)
+
+```
+
+Create a new dataframe with the columns to see the exchange between min-max gdd, the difference between the last flight and the first one
+```{r}
+Dif_dat_gdd <- data.frame(
+  location = c("Neoga", "Neoga", "Urbana", "Urbana", "St. Peter", "St. Peter"),
+   year = c(2022, 2023, 2022, 2023, 2022, 2023),
+  samples = c(9, 10, 10, 10, 8, 11),
+  initial_date = as.Date(c("2022-04-14", "2023-02-21", "2022-04-16", 
+                          "2023-03-02", "2022-04-14", "2023-02-21")),
+  final_date = as.Date(c("2022-06-14", "2023-06-13", "2022-06-15", 
+                        "2023-06-14", "2022-06-14", "2023-06-13")),
+  min_gdd = c(421.05, 153.85, 492.80, 283.90, 523.35, 146.50),
+  max_gdd = c(1542.10, 1634.10, 1616.75, 1722.80, 1689.70, 1691.75)
+)
+
+# Add columns of differences
+Dif_dat_gdd <- Dif_dat_gdd %>%
+  mutate(
+    gdd_range = max_gdd - min_gdd,
+    duration_days = as.numeric(final_date - initial_date),
+    experiment = paste(location, year, sep = "_")
+  )
+
+```
+
+Statistics by year
+```{r Statistics by year}
+stats_by_year <- Dif_dat_gdd %>%
+  group_by(year) %>%
+  summarise(
+    n = n(),
+    min_gdd_mean = mean(min_gdd),
+    min_gdd_sd = sd(min_gdd),
+    max_gdd_mean = mean(max_gdd),
+    max_gdd_sd = sd(max_gdd),
+    range_mean = mean(gdd_range),
+    range_sd = sd(gdd_range),
+    .groups = 'drop'
+  )
+```
+
+Statistics by location
+```{r Statistics by location} 
+stats_by_location <-  Dif_dat_gdd %>%
+  group_by(location) %>%
+  summarise(
+    across(c(min_gdd, max_gdd, gdd_range), 
+           list(mean = mean, sd = sd), 
+           .names = "{.col}_{.fn}"),
+    .groups = 'drop'
+  )
+```
+
+Check if the years are significant different in terms of gdd 
+```{r}
+data_2022 <- Dif_dat_gdd %>% filter(year == 2022)
+data_2023 <- Dif_dat_gdd %>% filter(year == 2023)
+
+# Test t para GDD mínimo
+t.test(data_2022$min_gdd, data_2023$min_gdd, 
+                     var.equal = FALSE, alternative = "two.sided")
+
+# Test t para GDD máximo
+t.test(data_2022$max_gdd, data_2023$max_gdd, 
+                     var.equal = FALSE, alternative = "two.sided")
+
+# Test t para rango de GDD
+t.test(data_2022$gdd_range, data_2023$gdd_range, 
+                       var.equal = FALSE, alternative = "two.sided")
+```
+```{r}
+Dif_dat_gdd %>%
+  group_by(year) %>%
+  summarise(
+    min_gdd_mean = mean(min_gdd),
+    min_gdd_se = sd(min_gdd) / sqrt(n()),
+    max_gdd_mean = mean(max_gdd),
+    max_gdd_se = sd(max_gdd) / sqrt(n()),
+    .groups = 'drop'
+  ) %>%
+  pivot_longer(cols = contains("_mean"), 
+               names_to = "variable", 
+               values_to = "mean") %>%
+  mutate(
+    se = ifelse(grepl("min", variable), 
+                rep(c(stats_by_year$min_gdd_sd[1]/sqrt(3), 
+                     stats_by_year$min_gdd_sd[2]/sqrt(3))), 
+                rep(c(stats_by_year$max_gdd_sd[1]/sqrt(3), 
+                     stats_by_year$max_gdd_sd[2]/sqrt(3)))),
+    variable = case_when(
+      variable == "min_gdd_mean" ~ "GDD Min.",
+      variable == "max_gdd_mean" ~ "GDD Max."
+    )
+  ) %>%
+  ggplot(aes(x = factor(year), y = mean, fill = variable)) +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.7) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), 
+                position = position_dodge(0.9), width = 0.25) +
+  labs(title = "Comparison of GDD for Year",
+       x = "Year", y = "GDD", fill = "Type of GDD") +
+  theme_minimal() +
+  scale_fill_manual(values = c("GDD Min." = "#FF6B6B", "GDD Max." = "#4ECDC4"))
+```
+
+Calculate distance with the closest gdd neightbor
+```{r}
+library(dplyr)
+library(tidyr)
+# Redefine the function with explicit dplyr references
+find_closest_gdd <- function(data1, value) {
+  # Calculate the absolute distance and return the closest row
+  closest_row <- data1 %>%
+    dplyr::mutate(distance = abs(gdd - value)) %>%
+    dplyr::arrange(distance) %>%
+    dplyr::slice(1)  # Get the row with the smallest distance
+  
+  return(as.list(closest_row))  # Return as a list for rowwise compatibility
+}
+```
+
+
+Find the closest neightboor in each location comparison  with St. Peter 2023
+```{r  }
+library(tidyverse)
+filtered_results <- StP23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Neo22_temp, gdd))) %>%
+  ungroup()
+
+# Convert the list column to a dataframe
+StP23.Neo22 <- do.call(rbind, filtered_results$closest_row)
+  
+####Neo23
+filtered_results <- StP23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Neo23_temp, gdd))) %>%
+  ungroup()
+
+# Convert the list column to a dataframe
+StP23.Neo23 <- do.call(rbind, filtered_results$closest_row)
+
+####Urb 22
+filtered_results <- StP23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Urb22_temp, gdd))) %>%
+  ungroup()
+
+# Convert the list column to a dataframe
+StP23.Urb22 <- do.call(rbind, filtered_results$closest_row)
+
+####Urb 23
+filtered_results <- StP23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Urb23_temp, gdd))) %>%
+  ungroup()
+
+# Convert the list column to a dataframe
+StP23.Urb23 <- do.call(rbind, filtered_results$closest_row)
+
+
+####StP 22
+filtered_results <- StP23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(StP22_temp, gdd))) %>%
+  ungroup()
+# Convert the list column to a dataframe
+StP23.StP22 <- do.call(rbind, filtered_results$closest_row)
+
+```
+
+
+```{r St. Peter 2022}
+####Neo22
+filtered_results <- StP22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Neo22_temp, gdd))) %>%
+  ungroup()
+
+# Convert the list column to a dataframe
+StP22.Neo22 <- do.call(rbind, filtered_results$closest_row)
+
+####Neo23
+filtered_results <- StP22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Neo23_temp, gdd)))
+
+# Convert the list column to a dataframe
+StP22.Neo23 <- do.call(rbind, filtered_results$closest_row)
+
+####Urb 22
+filtered_results <- StP22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Urb22_temp, gdd)))
+
+# Convert the list column to a dataframe
+StP22.Urb22 <- do.call(rbind, filtered_results$closest_row)
+
+####Urb 23
+filtered_results <- StP22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Urb23_temp, gdd)))
+
+# Convert the list column to a dataframe
+StP22.Urb23 <- do.call(rbind, filtered_results$closest_row)
+
+
+####StP 22
+filtered_results <- StP22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(StP23_temp, gdd)))
+
+# Convert the list column to a dataframe
+StP22.StP23 <- do.call(rbind, filtered_results$closest_row)
+
+```
+
+
+```{r Urbana 2022}
+####Neo22
+filtered_results <- Urb22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Neo22_temp, gdd)))
+
+# Convert the list column to a dataframe
+Urb22.Neo22 <- do.call(rbind, filtered_results$closest_row)
+
+####Neo23
+filtered_results <- Urb22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Neo23_temp, gdd)))
+
+# Convert the list column to a dataframe
+Urb22.Neo23 <- do.call(rbind, filtered_results$closest_row)
+
+####StP 22
+filtered_results <- Urb22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(StP22_temp, gdd)))
+
+# Convert the list column to a dataframe
+Urb22.StP22 <- do.call(rbind, filtered_results$closest_row)
+
+####Urb 23
+filtered_results <- Urb22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Urb23_temp, gdd)))
+
+# Convert the list column to a dataframe
+Urb22.Urb23 <- do.call(rbind, filtered_results$closest_row)
+
+
+####StP 22
+filtered_results <- Urb22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(StP23_temp, gdd)))
+
+# Convert the list column to a dataframe
+Urb22.StP23 <- do.call(rbind, filtered_results$closest_row)
+
+```
+
+```{r Urbana 2023}
+####Neo22
+filtered_results <- Urb23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Neo22_temp, gdd)))
+
+# Convert the list column to a dataframe
+Urb23.Neo22 <- do.call(rbind, filtered_results$closest_row)
+
+####Neo23
+filtered_results <- Urb23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Neo23_temp, gdd)))
+
+# Convert the list column to a dataframe
+Urb23.Neo23 <- do.call(rbind, filtered_results$closest_row)
+
+####StP 22
+filtered_results <- Urb23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(StP22_temp, gdd)))
+
+# Convert the list column to a dataframe
+Urb23.StP22 <- do.call(rbind, filtered_results$closest_row)
+
+####Urb 22
+filtered_results <- Urb23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Urb22_temp, gdd)))
+
+# Convert the list column to a dataframe
+Urb23.Urb22 <- do.call(rbind, filtered_results$closest_row)
+
+
+####StP 22
+filtered_results <- Urb23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(StP23_temp, gdd)))
+
+# Convert the list column to a dataframe
+Urb23.StP23 <- do.call(rbind, filtered_results$closest_row)
+
+```
+
+
+```{r Neoga 2022}
+####Urb23
+filtered_results <- Neo22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Urb23_temp, gdd)))
+
+# Convert the list column to a dataframe
+Neo22.Urb23 <- do.call(rbind, filtered_results$closest_row)
+
+####Neo23
+filtered_results <- Neo22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Neo23_temp, gdd)))
+
+# Convert the list column to a dataframe
+Neo22.Neo23 <- do.call(rbind, filtered_results$closest_row)
+
+####StP 22
+filtered_results <- Neo22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(StP22_temp, gdd)))
+
+# Convert the list column to a dataframe
+Neo22.StP22 <- do.call(rbind, filtered_results$closest_row)
+
+####Urb 22
+filtered_results <- Neo22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Urb22_temp, gdd)))
+
+# Convert the list column to a dataframe
+Neo22.Urb22 <- do.call(rbind, filtered_results$closest_row)
+
+
+####StP 23
+filtered_results <- Neo22_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(StP23_temp, gdd)))
+
+# Convert the list column to a dataframe
+Neo22.StP23 <- do.call(rbind, filtered_results$closest_row)
+
+```
+
+```{r Neoga 2023}
+####Urb23
+filtered_results <- Neo23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Urb23_temp, gdd)))
+
+# Convert the list column to a dataframe
+Neo23.Urb23 <- do.call(rbind, filtered_results$closest_row)
+
+####Neo22
+filtered_results <- Neo23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Neo22_temp, gdd)))
+
+# Convert the list column to a dataframe
+Neo23.Neo22 <- do.call(rbind, filtered_results$closest_row)
+
+####StP 22
+filtered_results <- Neo23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(StP22_temp, gdd)))
+
+# Convert the list column to a dataframe
+Neo23.StP22 <- do.call(rbind, filtered_results$closest_row)
+
+####Urb 22
+filtered_results <- Neo23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(Urb22_temp, gdd)))
+
+# Convert the list column to a dataframe
+Neo23.Urb22 <- do.call(rbind, filtered_results$closest_row)
+
+
+####StP 23
+filtered_results <- Neo23_flights %>%
+  rowwise() %>%
+  mutate(closest_row = list(find_closest_gdd(StP23_temp, gdd)))
+
+# Convert the list column to a dataframe
+Neo23.StP23 <- do.call(rbind, filtered_results$closest_row)
+
+
+```
+
+
+
+Now we are going to alingn the dates according with gdd, that are closest with the observed data in each location 
+```{r Every flight}
+Neo22_flights$date<- as.numeric(Neo22_flights$date)
+
+Neo22_allflights<-rbind(Neo22_flights, Urb22.Neo22[,1:8], Urb23.Neo22[,1:8], Neo23.Neo22[,1:8], StP22.Neo22[,1:8], StP23.Neo22[,1:8])
+
+Neo23_flights$date<- as.numeric(Neo23_flights$date)
+
+Neo23_allflights<-rbind(Neo23_flights, Urb22.Neo23[,1:8], Urb23.Neo23[,1:8], Neo22.Neo23[,1:8], StP22.Neo23[,1:8], StP23.Neo23[,1:8])
+
+Urb22_flights$date<- as.numeric(Urb22_flights$date)
+
+Urb22_allflights<-rbind(Urb22_flights, Neo23.Urb22[,1:8], Urb23.Urb22[,1:8], Neo22.Urb22[,1:8], StP22.Urb22[,1:8], StP23.Urb22[,1:8])
+
+Urb23_flights$date<- as.numeric(Urb23_flights$date)
+
+Urb23_allflights<-rbind(Urb23_flights, Neo22.Urb23[,1:8], Urb22.Urb23[,1:8], Neo23.Urb23[,1:8], StP22.Urb23[,1:8], StP23.Urb23[,1:8])
+
+StP22_flights$date<- as.numeric(StP22_flights$date)
+
+StP22_allflights<-rbind(StP22_flights, Neo22.StP22[,1:8], Urb23.StP22[,1:8], Neo23.StP22[,1:8], Urb22.StP22[,1:8], StP23.StP22[,1:8])
+
+StP23_flights$date<- as.numeric(StP23_flights$date)
+
+StP23_allflights<-rbind(StP23_flights, Neo22.StP23[,1:8], Urb22.StP23[,1:8], Neo23.StP23[,1:8], StP22.StP23[,1:8], Urb23.StP23[,1:8])
+
+
+```
+
+Sort the data 
+```{r}
+
+Neo22_allflights$gdd<-as.numeric(Neo22_allflights$gdd)
+Neo22_allflights <- Neo22_allflights %>%
+   arrange(gdd)
+
+Neo23_allflights$gdd<-as.numeric(Neo23_allflights$gdd)
+Neo23_allflights <- Neo23_allflights %>%
+   arrange(gdd)
+
+Urb22_allflights$gdd<-as.numeric(Urb22_allflights$gdd)
+Urb22_allflights <- Urb22_allflights %>%
+   arrange(gdd)
+
+Urb23_allflights$gdd<-as.numeric(Urb23_allflights$gdd)
+Urb23_allflights <- Urb23_allflights %>%
+   arrange(gdd)
+
+StP22_allflights$gdd<-as.numeric(StP22_allflights$gdd)
+StP22_allflights <- StP22_allflights %>%
+   arrange(gdd)
+
+StP23_allflights$gdd<-as.numeric(StP23_allflights$gdd)
+StP23_allflights <- StP23_allflights %>%
+   arrange(gdd)
+
+
+```

@@ -1,0 +1,984 @@
+---
+title: "Untitled"
+author: "Christian Escoto"
+date: "2025-07-17"
+output: pdf_document
+---
+
+
+
+```{r}
+
+library(asreml)
+library(dplyr)
+library(aod)
+
+library(dendextend)
+```
+
+
+
+```{r}
+# Columnas predictoras
+predictor_columns <- c("catboost", "xgboost", "mboost", "rf", "pcr", 
+                       "bayesA", "bayesL", "bayesR", "ll", "le", "lr", "Grain.yield")
+```
+
+```{r}
+N23.All<-N23.All%>%
+    mutate(
+    NDVI_mean = rowMeans(select(., starts_with("NDVI")), na.rm = TRUE),
+    GNDVI_mean = rowMeans(select(., starts_with("GNDVI")), na.rm = TRUE),
+    EVI_mean = rowMeans(select(., starts_with("EVI")), na.rm = TRUE)
+  )
+```
+
+
+
+```{r Model 1: Basic model}
+model1_results <- list()
+model1_summary <- data.frame(
+  predictor = character(),
+  aic = numeric(),
+  bic = numeric(),
+  loglik = numeric(),
+  heritability = numeric(),
+  model_type = character(),
+  stringsAsFactors = FALSE
+)
+for (predictor in predictor_columns) {
+  cat("Model 1 - Process:", predictor, "\n")
+  
+  tryCatch({
+    # Modelo básico con predictor individual
+    model1 <- asreml(
+      fixed = as.formula(paste(predictor, "~ 1")),
+      random = ~ blockNumber + geno,
+      residual = ~ id(units),
+      data = N23.All,
+      ai.sing = TRUE,
+      workspace = 500e6,
+      maxiter = 50,
+      trace = FALSE
+    )
+    
+    model1 <- update(model1)
+    model1_results[[predictor]] <- model1
+    
+    # Estadísticas
+    variance_components.model1 <- summary(model1)$varcomp
+    var_geno.model1 <- ifelse("geno" %in% rownames(variance_components.model1), 
+                       variance_components.model1["geno", "component"], 0)
+    var_error.model1 <- variance_components.model1["units", "component"]
+    heritability.model1 <- var_geno.model1 / (var_geno.model1 + var_error.model1)
+    
+    #reliability
+    Vg.model1<- summary(model1)$varcomp['geno', 'component']
+    G_hat.model1<- predict(model1, classify="geno",   ignore=c("(Intercept)", 'rep'))$pvals
+    se.model1<- G_hat.model1$std.error 
+    pev.model1<- se.model1^2
+    rel.model1<- 1-(pev.model1/Vg.model1)
+
+    
+    model1_summary <- rbind(model1_summary, data.frame(
+      predictor = predictor,
+      aic = model1$loglik - model1$nedf,
+      bic = -2 * model1$loglik + log(nrow(N23.All)) * model1$nedf,
+      loglik = model1$loglik,
+      heritability = heritability.model1,
+      reliability.mean = mean(rel.model1),
+      model_type = "Model1_Basic"
+    ))
+    
+    cat("✓ Complete:", predictor, "\n")
+    
+  }, error = function(e) {
+    cat("✗ Error:", predictor, "-", e$message, "\n")
+  })
+}
+
+# Almacenar resultados
+model1_summary
+```
+
+```{r Model 2: Basic model with Rep}
+# Define Model's components
+response_var <- "Grain.yield"
+predictor_vars <- variables_selected
+random_effects <- "~ blockNumber + geno"
+residual<-"~ id(units)"
+
+model2_results <- list()
+model2_summary <- data.frame(
+  predictor = character(),
+  aic = numeric(),
+  bic = numeric(),
+  loglik = numeric(),
+  heritability = numeric(),
+  model_type = character(),
+  stringsAsFactors = FALSE
+)
+N23.optim$best_model_aic
+
+    # Modelo con múltiples predictores
+    model2<-asreml(
+      fixed = as.formula(paste("Grain.yield" , "~ catboost + mboost + bayesL + bayesR + ll + le + GNDVI_mean + NDVI_mean")),  
+          random = ~ blockNumber + geno,
+           residual=~ id(units),
+          na.action = na.method(x = "include"),
+         data=N23.All,  ai.sing = TRUE,  workspace = 500e6)
+    
+    model2 <- update(model2)
+   
+    
+    # Estadísticas
+    variance_components.model2 <- summary(model2)$varcomp
+    var_geno.model2 <- ifelse("geno" %in% rownames(variance_components.model2), 
+                       variance_components.model2["geno", "component"], 0)
+    var_error.model2 <- variance_components.model2["units", "component"]
+    heritability.model2 <- var_geno.model2 / (var_geno.model2 + var_error.model2)
+    print(heritability.model2)
+    #predict
+    #save genetic variance in an object
+    Vg.model2<- summary(model2)$varcomp['geno', 'component']
+    #get the coefficients of the genotype effect
+    G_hat.model2<- predict(model2, classify="geno",   ignore=c("(Intercept)", 'rep'))$pvals
+    #get the reliability
+    se.model2<- G_hat.model2$std.error #standard error of estimates of genetic value
+    pev.model2<- se.model2^2
+    rel.model2<- 1-(pev.model2/Vg.model2)
+    print(mean(rel.model2))
+    
+    model2_summary <- rbind(model2_summary, data.frame(
+      predictor = predictor,
+      aic = model2$loglik - model2$nedf,
+      bic = -2 * model2$loglik + log(nrow(N23.All)) * model2$nedf,
+      loglik = model2$loglik,
+      heritability = heritability.model2,
+      reliability.mean = mean(rel.model2),
+      model_type = "Model2_Basic"
+    ))
+    
+    cat("✓ Complete:", predictor, "\n")
+    
+  }, error = function(e) {
+    cat("✗ Error:", predictor, "-", e$message, "\n")
+  })
+}
+
+# Almacenar resultados
+model2_summary
+
+
+```
+
+
+```{r  Model 3: Basic model with Rep}
+model3_results <- list()
+model3_summary <- data.frame(
+  predictor = character(),
+  aic = numeric(),
+  bic = numeric(),
+  loglik = numeric(),
+  heritability = numeric(),
+  model_type = character(),
+  stringsAsFactors = FALSE
+)
+for (predictor in predictor_columns) {
+  cat("Model 3 - Process:", predictor, "\n")
+  
+  tryCatch({
+
+    # Modelo con múltiples predictores
+    model3 <- asreml(
+      fixed = as.formula(paste(predictor, "~ 1")),
+      random = ~ at(Rep):units + blockNumber + geno,
+      residual = ~ units,
+      na.action = na.method(x = "include"),
+      data = N23.All,
+      ai.sing = TRUE,
+      workspace = 500e6)
+    
+    
+    model3 <- update(model3)
+    model3_results[[predictor]] <- model3
+    
+    # statístics
+    variance_components.model3 <- summary(model3)$varcomp
+    var_geno.model3 <- ifelse("geno" %in% rownames(variance_components.model3), 
+                       variance_components.model3["geno", "component"], 0)
+    var_error.model3 <- variance_components.model3["units", "component"]
+    heritability.model3 <- var_geno.model3 / (var_geno.model3 + var_error.model3)
+    
+    #predict
+    #save genetic variance in an object
+    Vg.model3<- summary(model3)$varcomp['geno', 'component']
+    #get the coefficients of the genotype effect
+    G_hat.model3<- predict(model3, classify="geno",   ignore=c("(Intercept)", 'rep'))$pvals
+    #get the reliability
+    se.model3<- G_hat.model3$std.error #standard error of estimates of genetic value
+    pev.model3<- se.model3^2
+    rel.model3<- 1-(pev.model3/Vg.model3)
+
+
+    
+    
+    model3_summary <- rbind(model3_summary, data.frame(
+      predictor = predictor,
+      aic= model3$loglik - 2 * model3$nedf,
+      bic = -2 * model3$loglik + log(nrow(N23.All)) * model3$nedf,
+      loglik = model3$loglik,
+      heritability = heritability.model3,
+      reliability.mean = mean(rel.model3),
+      model_type = "Model3_Basic"
+    ))
+    
+    cat("✓ Complete:", predictor, "\n")
+    
+  }, error = function(e) {
+    cat("✗ Error:", predictor, "-", e$message, "\n")
+  })
+}
+
+model3_summary
+
+```
+
+`
+```{r  Model 4: predict + Grain.yield}
+
+model4_results <- list()
+
+model4_summary <- data.frame(
+  predictor = character(),
+  aic = numeric(),
+  bic = numeric(),
+  loglik = numeric(),
+  heritability = numeric(),
+  reliability.mean = numeric(),
+  model_type = character(),
+  stringsAsFactors = FALSE
+)
+
+for (predictor in predictor_columns) {
+  cat("Model 4 - Process:", predictor, "\n")
+  
+  tryCatch({
+    # Model with multiple predictors
+    model4 <- asreml(
+      fixed = as.formula(paste("Grain.yield", "~", predictor)),
+      random = ~ at(Rep):units + blockNumber + geno,
+      residual = ~ units,
+      na.action = na.method(x = "include"),
+      data = N23.All,
+      ai.sing = TRUE,
+      workspace = 500e6
+    )
+    
+    model4 <- update(model4)
+    model4_results[[predictor]] <- model4
+    
+    # Statistics
+    variance_components.model4 <- summary(model4)$varcomp
+    var_geno.model4 <- ifelse("geno" %in% rownames(variance_components.model4), 
+                               variance_components.model4["geno", "component"], 0)
+    var_error.model4 <- variance_components.model4["units", "component"]
+    heritability.model4 <- var_geno.model4 / (var_geno.model4 + var_error.model4)
+    
+    # Predict
+    # Save genetic variance in an object
+    Vg.model4 <- summary(model4)$varcomp['geno', 'component']
+    # Get the coefficients of the genotype effect
+    G_hat.model4 <- predict(model4, classify = "geno", ignore = c("(Intercept)", 'rep'))$pvals
+    # Get the reliability
+    se.model4 <- G_hat.model4$std.error # Standard error of estimates of genetic value
+    pev.model4 <- se.model4^2
+    rel.model4 <- 1 - (pev.model4 / Vg.model4)
+    
+    model4_summary <- rbind(model4_summary, data.frame(
+      predictor = predictor,
+      aic = model4$loglik - 2 * model4$nedf,
+      bic = -2 * model4$loglik + log(nrow(N23.All)) * model4$nedf,
+      loglik = model4$loglik,
+      heritability = heritability.model4,
+      reliability.mean = mean(rel.model4),
+      model_type = "model4_Basic"
+    ))
+    
+    cat("✓ Complete:", predictor, "\n")
+    
+  }, error = function(e) {
+    cat("✗ Error:", predictor, "-", e$message, "\n")
+  })
+}
+
+model4_summary
+
+```
+
+```{r}
+
+ model6 <- asreml(
+      fixed = as.formula(Grain.yield ~ NDVI_mean + EVI_mean),
+      random = ~ at(Rep):units + blockNumber + geno,
+      residual = ~ units,
+      na.action = na.method(x = "include"),
+      data = N23.All,
+      ai.sing = TRUE,
+      workspace = 500e6
+    )
+
+
+ model6 <- update(model6)
+ model6$loglik
+
+```
+
+```{r}
+# Define your dataset and parameters
+response_var <- "Grain.yield"
+predictor_vars <- c("catboost", "xgboost", "mboost", "rf", "pcr", 
+                      "bayesA", "bayesL", "bayesR", "ll", "le", "lr",  "NDVI_mean", "EVI_mean", "GNDVI_mean")
+
+random_effects <- "~ at(Rep):units + blockNumber + geno"
+
+# Call the function
+N23.optim <- optimize_model(N23.All, response_var, predictor_vars, random_effects)
+
+
+```
+
+
+```{r Select important variables and Cross validation, message=FALSE, warning=FALSE}
+library(dplyr)
+library(asreml)
+
+# Configuración inicial
+set.seed(123)
+
+
+variables_candidates <- c("catboost", "xgboost", "mboost", "rf", "pcr", 
+                          "bayesA", "bayesL", "bayesR", "ll", "le", "lr",  
+                          "NDVI_mean", "EVI_mean", "GNDVI_mean")
+
+analyze_correlations <- function(data, variables) {
+  
+  cat("== Correlation Analysis ==\n")
+  
+  # Correlation matrix
+  cor_matrix <- cor(data[, variables], use = "complete.obs")
+  
+  cat("Correlation matrix:\n")
+  print(round(cor_matrix, 3))
+  
+  # Identify variables comparisons with high correlation 
+  high_cor_threshold <- 0.9
+  high_cor_pairs <- which(abs(cor_matrix) > high_cor_threshold & cor_matrix != 1, arr.ind = TRUE)
+  
+  if (nrow(high_cor_pairs) > 0) {
+    cat("\n Comparison >", high_cor_threshold, ":\n")
+    for (i in 1:nrow(high_cor_pairs)) {
+      row_idx <- high_cor_pairs[i, 1]
+      col_idx <- high_cor_pairs[i, 2]
+      if (row_idx < col_idx) {  
+        var1 <- rownames(cor_matrix)[row_idx]
+        var2 <- colnames(cor_matrix)[col_idx]
+        correlation <- cor_matrix[row_idx, col_idx]
+        cat("  ", var1, "vs", var2, ":", round(correlation, 3), "\n")
+      }
+    }
+  }
+  
+  # Hierarchical grouping
+  dist_matrix <- as.dist(1 - abs(cor_matrix))
+  hc <- hclust(dist_matrix, method = "ward.D2")
+  
+  # Optimal number of cluster or groups
+  heights <- hc$height
+  #cut off
+  optimal_cut <- 0.4  
+  
+  groups <- cutree(hc, h = optimal_cut)
+  
+  cat("\nGrouping variables (cutoff", optimal_cut, "):\n")
+  for (group_id in unique(groups)) {
+    group_vars <- names(groups)[groups == group_id]
+    cat("Group", group_id, ":", paste(group_vars, collapse = ", "), "\n")
+  }
+  
+  return(list(
+    correlation_matrix = cor_matrix,
+    variable_groups = groups,
+    dendrogram = hc
+  ))
+}
+
+cor<-analyze_correlations(N23.All, variables_candidates)
+den<-cor$dendrogram
+
+plot(as.dendrogram(den))
+rect.hclust(den, k = 3,
+            border = 2:4)
+
+den$height
+
+dist_matrix <- as.dist(1 - abs(cor$correlation_matrix))
+
+```
+
+
+```{r Select representatives for group}
+select_representatives <- function(data, response_var, variable_groups, random_effects, residual, criterion = "BIC") {
+  
+  cat("Criteria selection:", criterion, "\n\n")
+  
+  representatives <- c()
+  group_results <- list()
+  
+  for (group_id in unique(variable_groups)) {
+    group_vars <- names(variable_groups)[variable_groups == group_id]
+    cat("Evaluation Group", group_id, ":", paste(group_vars, collapse = ", "), "\n")
+    
+    if (length(group_vars) == 1) {
+      representatives <- c(representatives, group_vars)
+      cat("  ✓ Single variable:", group_vars, "\n\n")
+      next
+    }
+    
+    group_comparison <- data.frame(
+      variable = character(),
+      aic = numeric(),
+      bic = numeric(),
+      heritability = numeric(),
+      reliability = numeric(),
+      R2 = numeric(),
+      R2_adj = numeric(),
+      loglik = numeric(),
+      converged = logical(),
+      stringsAsFactors = FALSE
+    )
+    
+    for (var in group_vars) {
+      cat("Test:", var, "... ")
+      
+      model <- tryCatch({
+        asreml(
+          fixed = as.formula(paste(response_var, "~ 1")),
+          random = as.formula(paste(random_effects, "+", var)),
+          residual = as.formula(residual),
+          data = data,
+          ai.sing = TRUE,
+          workspace = 500e6
+        )
+      }, error = function(e) {
+        cat("ERROR:", e$message, "\n")
+        return(NULL)
+      })
+      
+      if (!is.null(model)) {
+        model <- update(model)
+        
+        loglik <- model$loglik
+        n_params <- model$nedf
+        n_obs <- nrow(data)
+        
+        aic <- -2 * loglik + 2 * n_params
+        bic <- -2 * loglik + log(n_obs) * n_params
+        
+        # Heritability
+        varcomp <- summary(model)$varcomp
+        var_geno <- varcomp["geno", "component"]
+        var_error <- varcomp["units", "component"]
+        heritability <- var_geno / (var_geno + var_error)
+        
+        # Reliability
+        G_hat <- predict(model, classify = 'geno', ignore = c('(Intercept)'))$pvals
+        se <- G_hat$std.error
+        pev <- se^2
+        reliability <- 1 - (pev / var_geno)
+        
+        # R² and Adjusted R²
+        r_squared <- NA
+        adj_r_squared <- NA
+        
+        tryCatch({
+          fitted_vals <- fitted(model)
+          residuals_vals <- residuals(model)
+          observed_vals <- data[[response_var]]
+          
+          complete_cases <- complete.cases(observed_vals, fitted_vals, residuals_vals)
+          observed_clean <- observed_vals[complete_cases]
+          fitted_clean <- fitted_vals[complete_cases]
+          
+          if (length(observed_clean) > 0 && length(fitted_clean) > 0) {
+            ss_res <- sum((observed_clean - fitted_clean)^2, na.rm = TRUE)
+            ss_tot <- sum((observed_clean - mean(observed_clean, na.rm = TRUE))^2, na.rm = TRUE)
+            
+            if (ss_tot > 0) {
+              r_squared <- 1 - (ss_res / ss_tot)
+              
+              # Adjusted R²
+              n <- length(observed_clean)
+              p <- 1
+              if (n > p + 1) {
+                adj_r_squared <- 1 - ((1 - r_squared) * (n - 1) / (n - p - 1))
+              }
+            }
+          }
+        }, error = function(e) {
+          cat("Warning: Could not calculate R² for variable:", var, "-", e$message, "\n")
+        })
+        
+        group_comparison <- rbind(group_comparison, data.frame(
+          variable = var,
+          aic = aic,
+          bic = bic,
+          heritability = heritability,
+          reliability = mean(reliability),
+          R2 = r_squared,
+          R2_adj = adj_r_squared,
+          loglik = loglik,
+          converged = TRUE
+        ))
+        
+        cat("AIC:", round(aic, 2), "| BIC:", round(bic, 2), "| h²:", round(heritability, 3),
+            "| Rel:", round(mean(reliability), 3), "| R²:", round(r_squared, 3),
+            "| R² adj:", round(adj_r_squared, 3), "\n")
+        
+      } else {
+        group_comparison <- rbind(group_comparison, data.frame(
+          variable = var,
+          aic = NA,
+          bic = NA,
+          heritability = NA,
+          reliability = NA,
+          R2 = NA,
+          R2_adj = NA,
+          loglik = NA,
+          converged = FALSE
+        ))
+        cat("Fail\n")
+      }
+    }
+    
+    # Selección del mejor representante
+    valid_models <- group_comparison[group_comparison$converged, ]
+    
+    if (nrow(valid_models) > 0) {
+      best_idx <- switch(criterion,
+                         "BIC" = which.min(valid_models$bic),
+                         "AIC" = which.min(valid_models$aic),
+                         "heritability" = which.max(valid_models$heritability),
+                         "reliability" = which.max(valid_models$reliability),
+                         "R sq" = which.max(valid_models$R2),
+                         "R sq adjusted" = which.max(valid_models$R2_adj),
+                         stop("Unknown criterion: ", criterion)
+      )
+      
+      best_var <- valid_models$variable[best_idx]
+      representatives <- c(representatives, best_var)
+      
+      # Asignar correctamente la columna del criterio
+      criterion_col <- switch(criterion,
+                              "AIC" = "aic",
+                              "BIC" = "bic",
+                              "heritability" = "heritability",
+                              "reliability" = "reliability",
+                              "R sq" = "R2",
+                              "R sq adjusted" = "R2_adj")
+      
+      criterion_value <- valid_models[best_idx, criterion_col]
+      
+      cat("  ✓ Selected:", best_var)
+      if (is.numeric(criterion_value)) {
+        cat(" (", criterion, ":", round(criterion_value, 3), ")\n")
+      } else {
+        cat(" (", criterion, ": NA )\n")
+      }
+      
+      group_results[[paste0("Group_", group_id)]] <- valid_models
+    } else {
+      cat("  ✗ No model converged in this group.\n")
+    }
+    
+    cat("\n")
+  }
+  
+  cat("-----Variables Selected-----\n")
+  cat("Variables:", paste(representatives, collapse = ", "), "\n")
+  cat("Total:", length(representatives), "variables of", length(unique(variable_groups)), "groups\n")
+  
+  return(list(
+    representatives = representatives,
+    group_results = group_results,
+    selection_criterion = criterion
+  ))
+}
+
+random_effects <- "~ blockNumber + geno"
+residual<-"~ id(units)"
+# Select representatives variables using groups as reference
+rep_selection <- select_representatives(N23.All, "Grain.yield", cor$variable_groups, 
+                                        random_effects, residual, "R sq")
+rep_selection
+```
+
+```{r  Optimize model}
+optimize_model <- function(data, response_var, predictor_vars, random_effects, residual, na_action = na.method(x = "include"), workspace = 500e6) {
+  # Initialize a list to store model results
+  model_results <- list()
+  
+  # Generate all combinations of predictors
+  all_combinations <- unlist(lapply(1:length(predictor_vars), function(x) combn(predictor_vars, x, simplify = FALSE)), recursive = FALSE)
+  
+  # Loop through each combination of predictors
+  for (predictors in all_combinations) {
+    # Create the fixed formula
+    fixed_formula <- as.formula(paste(response_var, "~", paste(predictors, collapse = " + ")))
+    
+    # Fit the model
+    model <- tryCatch({
+      asreml(
+        fixed = fixed_formula,
+        random = as.formula(random_effects),
+        residual = as.formula(residual),
+        na.action = na_action,
+        data = data,
+        ai.sing = TRUE,
+        workspace = workspace
+      )
+    }, error = function(e) {
+      cat("Error in model fitting for predictors:", predictors, "-", e$message, "\n")
+      return(NULL)
+    })
+    
+    # Update model
+    model <- update(model)
+    
+    # Check if the model was fitted successfully
+    if (!is.null(model)) {
+      # Calculate AIC and BIC
+      aic_value <- -2 * model$loglik + 2 * model$nedf  
+      bic_value <- -2 * model$loglik + log(nrow(data)) * model$nedf
+      
+      # Calculate R² and Adjusted R²
+      r_squared <- NA
+      adj_r_squared <- NA
+      
+      tryCatch({
+        # Get fitted values and residuals
+        fitted_vals <- fitted(model)
+        residuals_vals <- residuals(model)
+        
+        # Get observed values (remove NAs to match fitted values)
+        observed_vals <- data[[response_var]]
+        
+        # Ensure we have the same length by removing NAs
+        complete_cases <- complete.cases(observed_vals, fitted_vals, residuals_vals)
+        observed_clean <- observed_vals[complete_cases]
+        fitted_clean <- fitted_vals[complete_cases]
+        
+        if (length(observed_clean) > 0 && length(fitted_clean) > 0) {
+          # Calculate R²
+          ss_res <- sum((observed_clean - fitted_clean)^2, na.rm = TRUE)
+          ss_tot <- sum((observed_clean - mean(observed_clean, na.rm = TRUE))^2, na.rm = TRUE)
+          
+          if (ss_tot > 0) {
+            r_squared <- 1 - (ss_res / ss_tot)
+            
+            # Calculate Adjusted R²
+            n <- length(observed_clean)
+            p <- length(predictors)  # number of predictors
+            
+            if (n > p + 1) {
+              adj_r_squared <- 1 - ((1 - r_squared) * (n - 1) / (n - p - 1))
+            }
+          }
+        }
+      }, error = function(e) {
+        cat("Warning: Could not calculate R² for predictors:", predictors, "-", e$message, "\n")
+      })
+      
+      # Get variance components
+      variance_components <- summary(model)$varcomp
+      
+      # Extract genetic variance (adjust the name according to your random effects)
+      var_geno <- 0
+      if ("geno" %in% rownames(variance_components)) {
+        var_geno <- variance_components["geno", "component"]
+      }
+      
+      # Extract residual variance
+      var_error <- variance_components["units", "component"]
+      
+      # Calculate heritability
+      heritability <- var_geno / (var_geno + var_error)
+      
+      # Calculate reliability correctly using ASReml predictions
+      reliability_mean <- NA
+      
+      tryCatch({
+        # Get predictions for genotypes
+        pred_geno <- predict(model, classify = "geno", ignore = c("(Intercept)", "rep"))
+        
+        if (!is.null(pred_geno) && "pvals" %in% names(pred_geno)) {
+          pvals <- pred_geno$pvals
+          
+          if ("std.error" %in% names(pvals)) {
+            # Method 1: Using prediction error variance (PEV)
+            pev <- pvals$std.error^2
+            
+            # Reliability = 1 - (PEV / genetic_variance)
+            if (var_geno > 0) {
+              reliability <- 1 - (pev / var_geno)
+              # Ensure reliability is between 0 and 1
+              reliability <- pmax(0, pmin(1, reliability))
+              reliability_mean <- mean(reliability, na.rm = TRUE)
+            }
+          }
+        }
+        
+        # Alternative method: Using variance components directly
+        if (is.na(reliability_mean) && var_geno > 0) {
+          # Get the average standard error from the model
+          if (!is.null(pred_geno) && "pvals" %in% names(pred_geno)) {
+            avg_se <- mean(pred_geno$pvals$std.error, na.rm = TRUE)
+            avg_pev <- avg_se^2
+            reliability_mean <- 1 - (avg_pev / var_geno)
+            reliability_mean <- max(0, min(1, reliability_mean))
+          }
+        }
+        
+      }, error = function(e) {
+        cat("Warning: Could not calculate reliability for predictors:", predictors, "-", e$message, "\n")
+        reliability_mean <<- NA
+      })
+      
+      # Store the results
+      model_results[[paste(predictors, collapse = "_")]] <- list(
+        model = model,
+        aic = aic_value,
+        bic = bic_value,
+        r_squared = r_squared,
+        adj_r_squared = adj_r_squared,
+        heritability = heritability,
+        reliability_mean = reliability_mean,
+        predictors = predictors,
+        var_geno = var_geno,
+        var_error = var_error
+      )
+    }
+  }
+  
+  # Check if any models were fitted
+  if (length(model_results) == 0) {
+    stop("No models were fitted successfully. Please check your data and predictor variables.")
+  }
+  
+  # Convert results to a data frame for easier analysis
+  results_df <- do.call(rbind, lapply(model_results, function(x) data.frame(
+    predictors = paste(x$predictors, collapse = ", "),
+    aic = x$aic,
+    bic = x$bic,
+    R2 = x$r_squared,
+    R2_adj = x$adj_r_squared,
+    heritability = x$heritability,
+    reliability_mean = x$reliability_mean,
+    var_geno = x$var_geno,
+    var_error = x$var_error,
+    stringsAsFactors = FALSE
+  )))
+  
+  # Check if results_df is empty
+  if (nrow(results_df) == 0) {
+    stop("Results data frame is empty. No valid models were fitted.")
+  }
+  
+  # Find the best model based on different criteria
+  best_model_aic <- results_df[which.min(results_df$aic), ]
+  best_model_bic <- results_df[which.min(results_df$bic), ]
+  best_model_her <- results_df[which.max(results_df$heritability), ]
+  
+  # Best model based on R²
+  valid_r_squared <- !is.na(results_df$r_squared)
+  if (sum(valid_r_squared) > 0) {
+    best_model_r2 <- results_df[valid_r_squared, ][which.max(results_df[valid_r_squared, ]$r_squared), ]
+  } else {
+    best_model_r2 <- results_df[1, ]
+    best_model_r2$r_squared <- NA
+  }
+  
+  # Best model based on Adjusted R²
+  valid_adj_r_squared <- !is.na(results_df$adj_r_squared)
+  if (sum(valid_adj_r_squared) > 0) {
+    best_model_adj_r2 <- results_df[valid_adj_r_squared, ][which.max(results_df[valid_adj_r_squared, ]$adj_r_squared), ]
+  } else {
+    best_model_adj_r2 <- results_df[1, ]
+    best_model_adj_r2$adj_r_squared <- NA
+  }
+  
+  # For reliability, only consider models with valid (non-NA) reliability values
+  valid_reliability <- !is.na(results_df$reliability_mean)
+  if (sum(valid_reliability) > 0) {
+    best_model_rel <- results_df[valid_reliability, ][which.max(results_df[valid_reliability, ]$reliability_mean), ]
+  } else {
+    best_model_rel <- results_df[1, ]  # Fallback to first model if no valid reliability
+    best_model_rel$reliability_mean <- NA
+  }
+  
+  # Retrieve the actual models corresponding to the best metrics
+  best_model_aic_fit <- model_results[[gsub(", ", "_", best_model_aic$predictors)]]
+  best_model_bic_fit <- model_results[[gsub(", ", "_", best_model_bic$predictors)]]
+  best_model_her_fit <- model_results[[gsub(", ", "_", best_model_her$predictors)]]
+  best_model_r2_fit <- model_results[[gsub(", ", "_", best_model_r2$predictors)]]
+  best_model_adj_r2_fit <- model_results[[gsub(", ", "_", best_model_adj_r2$predictors)]]
+  best_model_rel_fit <- model_results[[gsub(", ", "_", best_model_rel$predictors)]]
+  
+  return(list(
+    all_models = model_results,
+    results_df = results_df,
+    best_model_aic = best_model_aic,
+    best_model_bic = best_model_bic,
+    best_model_her = best_model_her,
+    best_model_r2 = best_model_r2,
+    best_model_adj_r2 = best_model_adj_r2,
+    best_model_rel = best_model_rel,
+    best_model_aic_fit = best_model_aic_fit,
+    best_model_bic_fit = best_model_bic_fit,
+    best_model_her_fit = best_model_her_fit,
+    best_model_r2_fit = best_model_r2_fit,
+    best_model_adj_r2_fit = best_model_adj_r2_fit,
+    best_model_rel_fit = best_model_rel_fit
+  ))
+}
+```
+
+
+```{r}
+# Define Model's components
+response_var <- "Grain.yield"
+predictor_vars <- rep_selection$representatives
+random_effects <- "~ blockNumber + geno"
+residual<-"~ id(units)"
+
+# Call the function
+N23.optim <- optimize_model(N23.All, response_var, predictor_vars, random_effects, residual)
+```
+
+```{r}
+N23.optim$best_model_aic
+
+N23.optim$best_model_bic
+
+N23.optim$best_model_rel
+
+N23.optim$best_model_r2
+
+N23.optim$best_model_her
+
+N23_results<-N23.optim$results_df
+N23_results
+```
+
+```{r}
+N22.All<-N22.All%>%
+    mutate(
+    NDVI_mean = rowMeans(select(., starts_with("NDVI")), na.rm = TRUE),
+    GNDVI_mean = rowMeans(select(., starts_with("GNDVI")), na.rm = TRUE),
+    EVI_mean = rowMeans(select(., starts_with("EVI")), na.rm = TRUE)
+  )
+```
+
+```{r}
+cor.N22<-analyze_correlations(N22.All, variables_candidates)
+
+rep_selection.N22 <- select_representatives(N22.All, "Grain.yield", cor.N22$variable_groups, 
+                                        random_effects, residual, "R sq")
+predictor_vars.N22<-rep_selection.N22$representatives
+N22.optim <- optimize_model(N22.All, response_var, predictor_vars.N22, random_effects, residual)
+N22_results<-N22.optim$results_df
+N22_results
+```
+
+```{r}
+S22.All<-S22.All%>%
+    mutate(
+    NDVI_mean = rowMeans(select(., starts_with("NDVI")), na.rm = TRUE),
+    GNDVI_mean = rowMeans(select(., starts_with("GNDVI")), na.rm = TRUE),
+    EVI_mean = rowMeans(select(., starts_with("EVI")), na.rm = TRUE)
+  )
+```
+
+```{r}
+cor.S22<-analyze_correlations(S22.All, variables_candidates)
+
+rep_selection.S22 <- select_representatives(S22.All, "Grain.yield", cor.S22$variable_groups, 
+                                        random_effects, residual, "R sq")
+predictor_vars.S22<-rep_selection.S22$representatives
+predictor_vars.S22
+
+S22.optim <- optimize_model(S22.All, response_var, predictor_vars.S22, random_effects, residual)
+S22_results<-S22.optim$results_df
+S22_results
+```
+```{r}
+S23.All<-S23.All%>%
+    mutate(
+    NDVI_mean = rowMeans(select(., starts_with("NDVI")), na.rm = TRUE),
+    GNDVI_mean = rowMeans(select(., starts_with("GNDVI")), na.rm = TRUE),
+    EVI_mean = rowMeans(select(., starts_with("EVI")), na.rm = TRUE)
+  )
+```
+
+```{r}
+cor.S23<-analyze_correlations(S23.All, variables_candidates)
+
+rep_selection.S23 <- select_representatives(S23.All, "Grain.yield", cor.S23$variable_groups, 
+                                        random_effects, residual, "R sq")
+predictor_vars.S23<-rep_selection.S23$representatives
+S23.optim <- optimize_model(S23.All, response_var, predictor_vars.S23, random_effects, residual)
+S23_results<-S23.optim$results_df
+S23_results
+```
+
+```{r}
+U22.All<-U22.All%>%
+    mutate(
+    NDVI_mean = rowMeans(select(., starts_with("NDVI")), na.rm = TRUE),
+    GNDVI_mean = rowMeans(select(., starts_with("GNDVI")), na.rm = TRUE),
+    EVI_mean = rowMeans(select(., starts_with("EVI")), na.rm = TRUE)
+  )
+```
+
+```{r}
+cor.U22<-analyze_correlations(U22.All, variables_candidates)
+
+rep_selection.U22 <- select_representatives(U22.All, "Grain.yield", cor.U22$variable_groups, 
+                                        random_effects, residual, "R sq")
+predictor_vars.U22<-rep_selection.U22$representatives
+U22.optim <- optimize_model(U22.All, response_var, predictor_vars.U22, random_effects, residual)
+U22_results<-U22.optim$results_df
+U22_results
+```
+
+```{r}
+U23.All<-U23.All%>%
+    mutate(
+    NDVI_mean = rowMeans(select(., starts_with("NDVI")), na.rm = TRUE),
+    GNDVI_mean = rowMeans(select(., starts_with("GNDVI")), na.rm = TRUE),
+    EVI_mean = rowMeans(select(., starts_with("EVI")), na.rm = TRUE)
+  )
+```
+
+```{r}
+cor.U23<-analyze_correlations(U23.All, variables_candidates)
+
+rep_selection.U23 <- select_representatives(U23.All, "Grain.yield", cor.U23$variable_groups, 
+                                        random_effects, residual, "R sq")
+predictor_vars.U23<-rep_selection.U23$representatives
+U23.optim <- optimize_model(U23.All, response_var, predictor_vars.U23, random_effects, residual)
+U23_results<-U23.optim$results_df
+U23_results
+```
+
+

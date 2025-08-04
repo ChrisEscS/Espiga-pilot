@@ -1,0 +1,1529 @@
+---
+title: "Using all location"
+author: "Christian Escoto"
+date: "2025-04-14"
+output: pdf_document
+---
+
+```{r}
+library(dplyr)
+library(xgboost)
+library(pls)
+library(catboost)
+library(mboost)
+library(gbm)
+library(BGLR)
+library(glmnet)
+library(dplyr)
+```
+
+
+```{r setup, include=FALSE}
+All<-read.csv("All.csv")
+All$X<-NULL
+
+All <- All %>%
+  select(-c(starts_with("julian", ignore.case = FALSE)))
+
+All <- All %>%
+  select(-c(starts_with("temps5", ignore.case = FALSE)))
+
+All <- All %>%
+  select(-c(starts_with("cuml", ignore.case = FALSE)))
+
+All <- All %>%
+  select(-c(starts_with("RVI", ignore.case = FALSE)))
+
+Plants_info<-read.csv("Plant.info.csv")
+All1<- inner_join(All, Plants_info, by = c("Location", "Unit"))
+
+
+```
+
+```{r Training and test}
+
+# Calculate the sample size (50% of the filtered rows)
+sample_sizeAll <- ceiling(0.5 * nrow(All1))
+
+# Take a random sample of 50%
+set.seed(123)  # Set seed for reproducibility
+sampled_All<- All1[sample(nrow(All1), sample_sizeAll), ]
+
+sampled_All$location <- as.factor(sampled_All$Location)
+
+sampled_All$germplasmDbId
+
+sampled_All$Location <- as.factor(sampled_All$Location)
+
+
+# Remove the sampled rows from the original data frame
+remaining_All <- All1[!rownames(All1) %in% rownames(sampled_All), ]
+
+remaining_All1<-remaining_All
+
+sampled_All1<-sampled_All
+
+sampled_All$X<-NULL
+sampled_All$location<-NULL
+
+
+remaining_All1$Location<-NULL
+remaining_All1$Unit<-NULL
+remaining_All1$location<-NULL
+remaining_All1$X<-NULL
+remaining_All1$blockNumber<-NULL
+remaining_All1$germplasmDbId<-NULL
+remaining_All1$plotNumber<-NULL
+
+sampled_All1$Location<-NULL
+sampled_All1$location<-NULL
+sampled_All1$Unit<-NULL
+sampled_All1$X<-NULL
+sampled_All1$blockNumber<-NULL
+sampled_All1$germplasmDbId<-NULL
+sampled_All1$plotNumber<-NULL
+
+
+remaining_All1<-sapply(remaining_All1, as.numeric)
+sampled_All1<-sapply(sampled_All1, as.numeric)
+
+remaining_All1[is.infinite(remaining_All1)]<-0
+remaining_All1[is.nan(remaining_All1)]<-0
+remaining_All1[is.na(remaining_All1)]<-0
+
+sampled_All1<-as.data.frame(sampled_All1)
+remaining_All1<-as.data.frame(remaining_All1)
+
+```
+
+```{r Predictions}
+xg<-xgb_model(remaining_All1, sampled_All1, "Grain.yield")
+xg$RMSE
+#475.259
+xg$correlation
+#0.8788541
+
+rf<-rf_model(remaining_All1, sampled_All1, "Grain.yield")
+rf$RMSE
+rf$correlation
+# 481.2577
+#0.8755626
+
+cat<-cat_model(remaining_All1, sampled_All1, "Grain.yield")
+cat$RMSE
+#471.8646
+cat$correlation
+#0.8807602
+
+mb<-mboost_model(remaining_All1, sampled_All1, "Grain.yield")
+mb$RMSE
+mb$correlation
+#500.3458
+#0.8647161
+
+pcr<-pcr_model(remaining_All1, sampled_All1, "Grain.yield")
+pcr$RMSE
+pcr$correlation
+#455.5118
+#0.8893193
+
+bayesA<-bayesA_model(remaining_All1, sampled_All1, "Grain.yield")
+bayesA$RMSE
+bayesA$correlation
+#466.5602
+#0.8834409
+
+bayesL<-bayesL_model(remaining_All1, sampled_All1, "Grain.yield")
+bayesL$RMSE
+bayesL$correlation
+#466.8577
+#0.8832884
+
+bayesR<-bayesR_model(remaining_All1, sampled_All1, "Grain.yield")
+bayesR$RMSE
+bayesR$correlation
+
+Ll<-lineal_model(remaining_All1, sampled_All1, "Grain.yield", alpha_value = 1)
+Ll$RMSE
+Ll$correlation
+#465.1814
+#0.8842242
+
+Le<-lineal_model(remaining_All1, sampled_All1, "Grain.yield", alpha_value = 0.5)
+Le$RMSE
+Le$correlation
+466.722
+0.8834028
+
+
+Lr<-lineal_model(remaining_All1, sampled_All1, "Grain.yield", alpha_value = 0)
+Lr$RMSE
+Lr$correlation
+
+```
+
+```{r Extract predictions}
+xg_prediction<-xg$predictions
+xg_prediction<-as.data.frame(xg_prediction)
+xg_prediction$Unit<-sampled_All$Unit
+xg_prediction$Block<-sampled_All$blockNumber
+xg_prediction$Location<-sampled_All$Location
+xg_prediction$id<-sampled_All$germplasmDbId
+
+
+cat_prediction<-cat$predictions
+cat_prediction<-as.data.frame(cat_prediction)
+cat_prediction$Unit<-sampled_All$Unit
+cat_prediction$Block<-sampled_All$blockNumber
+cat_prediction$Location<-sampled_All$Location
+cat_prediction$id<-sampled_All$germplasmDbId
+
+rf_prediction<-rf$predictions
+rf_prediction<-as.data.frame(rf_prediction)
+rf_prediction$Unit<-sampled_All$Unit
+rf_prediction$Block<-sampled_All$blockNumber
+rf_prediction$Location<-sampled_All$Location
+rf_prediction$id<-sampled_All$germplasmDbId
+
+mb_prediction<-mb$predictions
+mb_prediction<-as.data.frame(mb_prediction)
+mb_prediction$Unit<-sampled_All$Unit
+mb_prediction$Block<-sampled_All$blockNumber
+mb_prediction$Location<-sampled_All$Location
+mb_prediction$id<-sampled_All$germplasmDbId
+
+pcr_prediction<-pcr$predictions
+pcr_prediction<-as.data.frame(pcr_prediction)
+pcr_prediction$Unit<-sampled_All$Unit
+pcr_prediction$Block<-sampled_All$blockNumber
+pcr_prediction$Location<-sampled_All$Location
+pcr_prediction$id<-sampled_All$germplasmDbId
+
+bayesA_prediction<-bayesA$predictions
+bayesA_prediction<-as.data.frame(bayesA_prediction)
+bayesA_prediction$Unit<-sampled_All$Unit
+bayesA_prediction$Block<-sampled_All$blockNumber
+bayesA_prediction$Location<-sampled_All$Location
+bayesA_prediction$id<-sampled_All$germplasmDbId
+
+bayesL_prediction<-bayesL$predictions
+bayesL_prediction<-as.data.frame(bayesL_prediction)
+bayesL_prediction$Unit<-sampled_All$Unit
+bayesL_prediction$Block<-sampled_All$blockNumber
+bayesL_prediction$Location<-sampled_All$Location
+bayesL_prediction$id<-sampled_All$germplasmDbId
+
+
+bayesR_prediction<-bayesR$predictions
+bayesR_prediction<-as.data.frame(bayesR_prediction)
+bayesR_prediction$Unit<-sampled_All$Unit
+bayesR_prediction$Block<-sampled_All$blockNumber
+bayesR_prediction$Location<-sampled_All$Location
+bayesR_prediction$id<-sampled_All$germplasmDbId
+
+
+Le_prediction<-Le$predictions
+Le_prediction<-as.data.frame(Le_prediction)
+Le_prediction$Unit<-sampled_All$Unit
+Le_prediction$Block<-sampled_All$blockNumber
+Le_prediction$Location<-sampled_All$Location
+Le_prediction$id<-sampled_All$germplasmDbId
+
+
+Ll_prediction<-Ll$predictions
+Ll_prediction<-as.data.frame(Ll_prediction)
+Ll_prediction$Unit<-sampled_All$Unit
+Ll_prediction$Block<-sampled_All$blockNumber
+Ll_prediction$Location<-sampled_All$Location
+Ll_prediction$id<-sampled_All$germplasmDbId
+
+Lr_prediction<-Lr$predictions
+Lr_prediction<-as.data.frame(Lr_prediction)
+Lr_prediction$Unit<-sampled_All$Unit
+Lr_prediction$Block<-sampled_All$blockNumber
+Lr_prediction$Location<-sampled_All$Location
+Lr_prediction$id<-sampled_All$germplasmDbId
+
+```
+
+Visualization predictions
+```{r}
+
+compare_predictions("Xgboost"= xg_prediction$xg_prediction, "Random Forest"=rf_prediction$rf_prediction, "Mboost"=mb_prediction$mb_prediction, "catboost"=cat_prediction$cat_prediction, "pcr"= pcr_prediction$pcr_prediction, 
+                    "Bayes A"=bayesA_prediction$bayesA_prediction, "Bayes Ridge"=bayesR_prediction$bayesR_prediction,"Lasso"=Ll_prediction$Ll_prediction, "Lineal Ridge"=Lr_prediction$Lr_prediction, "Lineal Elasticnet"=Le_prediction$Le_prediction, "Observed" = sampled_All1$Grain.yield)
+
+compare_predictions("pcr"= pcr_prediction$pcr_prediction, "Lasso"=Ll_prediction$Ll_prediction, "Observed" = sampled_All1$Grain.yield)
+```
+
+
+Predictive Ability Comparison
+```{r}
+
+models<- c("mb", "rf", "xg", "cat", "pcr", "bayesA", "bayesL", "bayesR", "Ll", "Le", "Lr")
+#loop to get results into a vector
+pa_vec<-c()
+
+for(i in 1:length(models)){
+  pa_vec<- append(pa_vec, get(models[i])$correlation)
+}
+
+rmse_vec<-c()
+
+for(i in 1:length(models)){
+  rmse_vec<- append(rmse_vec, get(models[i])$RMSE)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models, Pred_Ability= pa_vec, RMSE= rmse_vec)
+
+Rtable
+
+```
+
+
+
+
+
+Model for sample
+```{r asreml}
+library(asreml)
+
+#set asreml options
+asreml.options(maxit=500)
+
+sampled_All$Unit<-as.factor(sampled_All$Unit)
+sampled_All$blockNumber<-as.factor(sampled_All$blockNumber)
+sampled_All$Location<-as.factor(sampled_All$Location)
+sampled_All$plotNumber<-as.factor(sampled_All$plotNumber)
+sampled_All$germplasmDbId<-as.factor(sampled_All$germplasmDbId)
+sampled_All$Location<-as.factor(sampled_All$Location)
+
+#Observed Grain yield with location
+model_All <- asreml(fixed=Grain.yield ~ Location,  
+                   random = ~ germplasmDbId + germplasmDbId:blockNumber + germplasmDbId:Location,
+                   data = sampled_All,
+                   na.action = na.method(y="include", x="include"))
+
+model_All<-update(model_All)
+
+#get hertability, report the matricies, by environment  
+varcompAll<-summary(model_All)$varcomp
+
+# Revisar los nombres disponibles
+print(rownames(varcompAll))
+
+# Assign variance components
+#This will sum the genetic variance across all locations.
+V_A_All <- sum(varcompAll[grep("germplasmDbId", rownames(varcompAll)), "component"], na.rm = TRUE)
+
+V_E_All <- varcompAll[grep("units!R", rownames(varcompAll)), "component"]
+
+V_GE_All <- varcompAll["germplasmDbId:Location", "component"]
+
+# Calculate heritability
+h2_All <- V_A_All / (V_A_All + V_E_All + V_GE_All)
+print(h2_All)
+#  0.2684015
+
+
+# Get variance components
+varcompAll <- summary(model_All)$varcomp
+Vg_row <- grep("^germplasmDbId", rownames(varcompAll), value = TRUE)
+Vg_All <- varcompAll[Vg_row[1], "component"]
+
+# Predict BLUPs
+G_hat_All <- predict(model_All, 
+                     classify = "germplasmDbId", 
+                     only = "germplasmDbId", 
+                     sed = TRUE,
+                     ignore = c("Location", "(Intercept)"))$pvals
+
+# Check for NA std.errors
+summary(G_hat_All$std.error)
+
+# Remove rows with NA std.error
+G_hat_All <- G_hat_All[!is.na(G_hat_All$std.error), ]
+
+# Calculate reliability
+se_All <- G_hat_All$std.error
+pev_All <- se_All^2
+rel_All <- 1 - (pev_All / Vg_All)
+
+# Output
+print(mean(rel_All, na.rm = TRUE))
+#0.3007732
+
+mean_rel_All<-mean(rel_All, na.rm = TRUE)
+
+summary(rel_All)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.2072  0.2075  0.2075  0.3008  0.4245  0.6942 
+
+
+#############XG###########
+xg_prediction$Unit<-as.factor(xg_prediction$Unit)
+xg_prediction$Block<-as.factor(xg_prediction$Block)
+xg_prediction$Location<-as.factor(xg_prediction$Location)
+xg_prediction$id<-as.factor(xg_prediction$id)
+# Observed Grain yield with Location
+model_xg <- asreml(xg_prediction ~ Location,  
+                    random = ~  id +
+                      id:Block +  id:Location,
+                     data = xg_prediction,
+                    na.action = na.method(y="include", x="include"))
+
+
+#get hertability, report the matricies, by environment  
+varcomp_xg<-summary(model_xg)$varcomp
+
+# Assign variance components
+#This wixg sum the genetic variance across axg Locations.
+V_A_xg <- sum(varcomp_xg[grep("id", rownames(varcomp_xg)), "component"], na.rm = TRUE)
+
+V_E_xg <- varcomp_xg[grep("units!R", rownames(varcomp_xg)), "component"]
+
+V_GE_xg <- varcomp_xg["id:Location", "component"]
+
+# Calculate heritability
+h2_xg <- V_A_xg / (V_A_xg + V_E_xg + V_GE_xg)
+print(h2_xg)
+# 0.09122777
+
+
+#save genetic variance in an object
+Vg_xg<- summary(model_xg)$varcomp['id', 'component']
+
+
+#get the coefficients of the genotype effect
+Vg_row_xg <- grep("^id", rownames(varcomp_xg), value = TRUE)
+Vg_xg <- varcomp_xg[Vg_row_xg[1], "component"]
+
+# Predict BLUPs
+# Predict BLUPs
+G_hat_xg <- predict(model_xg, 
+                     classify = "id", 
+                     only = "id", 
+                     sed = TRUE,
+                     ignore = c("Location", "(Intercept)"))$pvals
+
+
+# Check for NA std.errors
+summary(G_hat_xg$std.error)
+
+# Remove rows with NA std.error
+G_hat_xg <- G_hat_xg[!is.na(G_hat_xg$std.error), ]
+
+# Calculate reliability
+se_xg <- G_hat_xg$std.error
+pev_xg <- se_xg^2
+rel_xg <- 1 - (pev_xg / Vg_xg)
+
+# Output
+print(mean(rel_xg, na.rm = TRUE))
+# 0.1325025
+
+mean_rel_xg<-mean(rel_xg, na.rm = TRUE)
+
+
+summary(rel_xg)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#0.07786 0.07798 0.07799 0.13250 0.20021 0.45445 
+
+
+######catboost####
+cat_prediction$Unit<-as.factor(cat_prediction$Unit)
+cat_prediction$Block<-as.factor(cat_prediction$Block)
+cat_prediction$Location<-as.factor(cat_prediction$Location)
+cat_prediction$id<-as.factor(cat_prediction$id)
+# Observed Grain yield with location
+model_cat <- asreml(cat_prediction ~ Location,  
+                    random = ~  id +
+                      id:Block +  id:Location,
+                     data = cat_prediction,
+                    na.action = na.method(y="include", x="include"))
+
+
+#get hertability, report the matricies, by environment  
+varcomp_cat<-summary(model_cat)$varcomp
+
+# Assign variance components
+#This wicat sum the genetic variance across acat locations.
+V_A_cat <- sum(varcomp_cat[grep("id", rownames(varcomp_cat)), "component"], na.rm = TRUE)
+
+V_E_cat <- varcomp_cat[grep("units!R", rownames(varcomp_cat)), "component"]
+
+V_GE_cat <- varcomp_cat["id:Location", "component"]
+
+# Calculate heritability
+h2_cat <- V_A_cat / (V_A_cat + V_E_cat + V_GE_cat)
+print(h2_cat)
+#  0.09055661
+
+
+#save genetic variance in an object
+Vg_cat<- summary(model_cat)$varcomp['id', 'component']
+
+
+#get the coefficients of the genotype effect
+Vg_row_cat <- grep("^id", rownames(varcomp_cat), value = TRUE)
+Vg_cat <- varcomp_cat[Vg_row_cat[1], "component"]
+
+# Predict BLUPs
+# Predict BLUPs
+G_hat_cat <- predict(model_cat, 
+                     classify = "id", 
+                     only = "id", 
+                     sed = TRUE,
+                     ignore = c("Location", "(Intercept)"))$pvals
+
+
+# Check for NA std.errors
+summary(G_hat_cat$std.error)
+
+# Remove rows with NA std.error
+G_hat_cat <- G_hat_cat[!is.na(G_hat_cat$std.error), ]
+
+# Calculate reliability
+se_cat <- G_hat_cat$std.error
+pev_cat <- se_cat^2
+rel_cat <- 1 - (pev_cat / Vg_cat)
+
+# Output
+print(mean(rel_cat, na.rm = TRUE))
+# 0.1513444
+
+mean_rel_cat<-mean(rel_cat, na.rm = TRUE)
+
+
+summary(rel_cat)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.09026 0.09040 0.09042 0.15134 0.22912 0.49779 
+
+
+######RF####
+rf_prediction$Unit<-as.factor(rf_prediction$Unit)
+rf_prediction$Block<-as.factor(rf_prediction$Block)
+rf_prediction$Location<-as.factor(rf_prediction$Location)
+rf_prediction$id<-as.factor(rf_prediction$id)
+# Observed Grain yield with location
+model_rf <- asreml(rf_prediction ~ Location,  
+                    random = ~  id +
+                      id:Block +  id:Location,
+                     data = rf_prediction,
+                    na.action = na.method(y="include", x="include"))
+
+
+#get hertability, report the matricies, by environment  
+varcomp_rf<-summary(model_rf)$varcomp
+
+# Assign variance components
+#This wirf sum the genetic variance across arf locations.
+V_A_rf <- sum(varcomp_rf[grep("id", rownames(varcomp_rf)), "component"], na.rm = TRUE)
+
+V_E_rf <- varcomp_rf[grep("units!R", rownames(varcomp_rf)), "component"]
+
+V_GE_rf <- varcomp_rf["id:Location", "component"]
+
+# Calculate heritability
+h2_rf <- V_A_rf / (V_A_rf + V_E_rf + V_GE_rf)
+print(h2_rf)
+# 0.07901525
+
+
+#save genetic variance in an object
+Vg_rf<- summary(model_rf)$varcomp['id', 'component']
+
+
+#get the coefficients of the genotype effect
+Vg_row_rf <- grep("^id", rownames(varcomp_rf), value = TRUE)
+Vg_rf <- varcomp_rf[Vg_row_rf[1], "component"]
+
+# Predict BLUPs
+# Predict BLUPs
+G_hat_rf <- predict(model_rf, 
+                     classify = "id", 
+                     only = "id", 
+                     sed = TRUE,
+                     ignore = c("Location", "(Intercept)"))$pvals
+
+
+# Check for NA std.errors
+summary(G_hat_rf$std.error)
+
+# Remove rows with NA std.error
+G_hat_rf <- G_hat_rf[!is.na(G_hat_rf$std.error), ]
+
+# Calculate reliability
+se_rf <- G_hat_rf$std.error
+pev_rf <- se_rf^2
+rel_rf <- 1 - (pev_rf / Vg_rf)
+
+# Output
+print(mean(rel_rf, na.rm = TRUE))
+# 0.1341654
+
+mean_rel_rf<-mean(rel_rf, na.rm = TRUE)
+
+
+summary(rel_rf)
+#in. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#0.07875 0.07887 0.07889 0.13417 0.20389 0.46066 
+
+
+######Mboots####
+mb_prediction$Unit<-as.factor(mb_prediction$Unit)
+mb_prediction$Block<-as.factor(mb_prediction$Block)
+mb_prediction$Location<-as.factor(mb_prediction$Location)
+mb_prediction$id<-as.factor(mb_prediction$id)
+# Observed Grain yield with location
+model_mb <- asreml(mb_prediction ~ Location,  
+                    random = ~  id +
+                      id:Block +  id:Location,
+                     data = mb_prediction,
+                    na.action = na.method(y="include", x="include"))
+
+
+#get hertability, report the matricies, by environment  
+varcomp_mb<-summary(model_mb)$varcomp
+
+# Assign variance components
+#This wimb sum the genetic variance across amb locations.
+V_A_mb <- sum(varcomp_mb[grep("id", rownames(varcomp_mb)), "component"], na.rm = TRUE)
+
+V_E_mb <- varcomp_mb[grep("units!R", rownames(varcomp_mb)), "component"]
+
+V_GE_mb <- varcomp_mb["id:Location", "component"]
+
+# Calculate heritability
+h2_mb <- V_A_mb / (V_A_mb + V_E_mb + V_GE_mb)
+print(h2_mb)
+#  0.08206957
+
+
+#save genetic variance in an object
+Vg_mb<- summary(model_mb)$varcomp['id', 'component']
+
+
+#get the coefficients of the genotype effect
+Vg_row_mb <- grep("^id", rownames(varcomp_mb), value = TRUE)
+Vg_mb <- varcomp_mb[Vg_row_mb[1], "component"]
+
+# Predict BLUPs
+# Predict BLUPs
+G_hat_mb <- predict(model_mb, 
+                     classify = "id", 
+                     only = "id", 
+                     sed = TRUE,
+                     ignore = c("Location", "(Intercept)"))$pvals
+
+
+# Check for NA std.errors
+summary(G_hat_mb$std.error)
+
+# Remove rows with NA std.error
+G_hat_mb <- G_hat_mb[!is.na(G_hat_mb$std.error), ]
+
+# Calculate reliability
+se_mb <- G_hat_mb$std.error
+pev_mb <- se_mb^2
+rel_mb <- 1 - (pev_mb / Vg_mb)
+
+# Output
+print(mean(rel_mb, na.rm = TRUE))
+# 0.1387731
+
+mean_rel_mb<-mean(rel_mb, na.rm = TRUE)
+
+
+summary(rel_mb)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#0.08181 0.08193 0.08195 0.13877 0.21067 0.47092 
+
+######PCR#######
+pcr_prediction$Unit<-as.factor(pcr_prediction$Unit)
+pcr_prediction$Block<-as.factor(pcr_prediction$Block)
+pcr_prediction$Location<-as.factor(pcr_prediction$Location)
+pcr_prediction$id<-as.factor(pcr_prediction$id)
+# Observed Grain yield with location
+model_pcr <- asreml(pcr_prediction ~ Location,  
+                    random = ~  id +
+                      id:Block +  id:Location,
+                     data = pcr_prediction,
+                    na.action = na.method(y="include", x="include"))
+
+
+#get hertability, report the matricies, by environment  
+varcomp_pcr<-summary(model_pcr)$varcomp
+
+# Assign variance components
+#This wipcr sum the genetic variance across apcr locations.
+V_A_pcr <- sum(varcomp_pcr[grep("id", rownames(varcomp_pcr)), "component"], na.rm = TRUE)
+
+V_E_pcr <- varcomp_pcr[grep("units!R", rownames(varcomp_pcr)), "component"]
+
+V_GE_pcr <- varcomp_pcr["id:Location", "component"]
+
+# Calculate heritability
+h2_pcr <- V_A_pcr / (V_A_pcr + V_E_pcr + V_GE_pcr)
+print(h2_pcr)
+# 0.1222685
+
+
+#save genetic variance in an object
+Vg_pcr<- summary(model_pcr)$varcomp['id', 'component']
+
+
+#get the coefficients of the genotype effect
+Vg_row_pcr <- grep("^id", rownames(varcomp_pcr), value = TRUE)
+Vg_pcr <- varcomp_pcr[Vg_row_pcr[1], "component"]
+
+# Predict BLUPs
+# Predict BLUPs
+G_hat_pcr <- predict(model_pcr, 
+                     classify = "id", 
+                     only = "id", 
+                     sed = TRUE,
+                     ignore = c("Location", "(Intercept)"))$pvals
+
+
+# Check for NA std.errors
+summary(G_hat_pcr$std.error)
+
+# Remove rows with NA std.error
+G_hat_pcr <- G_hat_pcr[!is.na(G_hat_pcr$std.error), ]
+
+# Calculate reliability
+se_pcr <- G_hat_pcr$std.error
+pev_pcr <- se_pcr^2
+rel_pcr <- 1 - (pev_pcr / Vg_pcr)
+
+# Output
+print(mean(rel_pcr, na.rm = TRUE))
+# 0.1857895
+
+mean_rel_pcr<-mean(rel_pcr, na.rm = TRUE)
+
+
+summary(rel_pcr)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.1145  0.1146  0.1147  0.1858  0.2779  0.5617 
+
+
+#####BayesA######
+bayesA_prediction$Unit<-as.factor(bayesA_prediction$Unit)
+bayesA_prediction$Block<-as.factor(bayesA_prediction$Block)
+bayesA_prediction$Location<-as.factor(bayesA_prediction$Location)
+bayesA_prediction$id<-as.factor(bayesA_prediction$id)
+# Observed Grain yield with location
+model_bayesA <- asreml(bayesA_prediction ~ Location,  
+                    random = ~  id +
+                      id:Block +  id:Location,
+                     data = bayesA_prediction,
+                    na.action = na.method(y="include", x="include"))
+
+
+#get hertability, report the matricies, by environment  
+varcomp_bayesA<-summary(model_bayesA)$varcomp
+
+# Assign variance components
+#This wibayesA sum the genetic variance across abayesA locations.
+V_A_bayesA <- sum(varcomp_bayesA[grep("id", rownames(varcomp_bayesA)), "component"], na.rm = TRUE)
+
+V_E_bayesA <- varcomp_bayesA[grep("units!R", rownames(varcomp_bayesA)), "component"]
+
+V_GE_bayesA <- varcomp_bayesA["id:Location", "component"]
+
+# Calculate heritability
+h2_bayesA <- V_A_bayesA / (V_A_bayesA + V_E_bayesA + V_GE_bayesA)
+print(h2_bayesA)
+# 0.1287356
+
+
+#save genetic variance in an object
+Vg_bayesA<- summary(model_bayesA)$varcomp['id', 'component']
+
+
+#get the coefficients of the genotype effect
+Vg_row_bayesA <- grep("^id", rownames(varcomp_bayesA), value = TRUE)
+Vg_bayesA <- varcomp_bayesA[Vg_row_bayesA[1], "component"]
+
+# Predict BLUPs
+G_hat_bayesA <- predict(model_bayesA, 
+                     classify = "id", 
+                     only = "id", 
+                     sed = TRUE,
+                     ignore = c("Location", "(Intercept)"))$pvals
+
+# Check for NA std.errors
+summary(G_hat_bayesA$std.error)
+
+# Remove rows with NA std.error
+G_hat_bayesA <- G_hat_bayesA[!is.na(G_hat_bayesA$std.error), ]
+
+# Calculate reliability
+se_bayesA <- G_hat_bayesA$std.error
+pev_bayesA <- se_bayesA^2
+rel_bayesA <- 1 - (pev_bayesA / Vg_bayesA)
+
+# Output
+print(mean(rel_bayesA, na.rm = TRUE))
+# 0.1836154
+
+mean_rel_bayesA<-mean(rel_bayesA, na.rm = TRUE)
+
+
+summary(rel_bayesA)
+#  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.1131  0.1133  0.1133  0.1836  0.2738  0.5563 
+
+#####BayesL#####
+bayesL_prediction$Unit<-as.factor(bayesL_prediction$Unit)
+bayesL_prediction$Block<-as.factor(bayesL_prediction$Block)
+bayesL_prediction$Location<-as.factor(bayesL_prediction$Location)
+bayesL_prediction$id<-as.factor(bayesL_prediction$id)
+# Observed Grain yield with location
+model_bayesL <- asreml(bayesL_prediction ~ Location,  
+                    random = ~  id +
+                      id:Block +  id:Location,
+                     data = bayesL_prediction,
+                    na.action = na.method(y="include", x="include"))
+
+
+#get hertability, report the matricies, by environment  
+varcomp_bayesL<-summary(model_bayesL)$varcomp
+
+# Assign variance components
+#This wibayesL sum the genetic variance across abayesL locations.
+V_A_bayesL <- sum(varcomp_bayesL[grep("id", rownames(varcomp_bayesL)), "component"], na.rm = TRUE)
+
+V_E_bayesL <- varcomp_bayesL[grep("units!R", rownames(varcomp_bayesL)), "component"]
+
+V_GE_bayesL <- varcomp_bayesL["id:Location", "component"]
+
+# Calculate heritability
+h2_bayesL <- V_A_bayesL / (V_A_bayesL + V_E_bayesL + V_GE_bayesL)
+print(h2_bayesL)
+#  0.1200838
+
+
+#save genetic variance in an object
+Vg_bayesL<- summary(model_bayesL)$varcomp['id', 'component']
+
+
+#get the coefficients of the genotype effect
+Vg_row_bayesL <- grep("^id", rownames(varcomp_bayesL), value = TRUE)
+Vg_bayesL <- varcomp_bayesL[Vg_row_bayesL[1], "component"]
+
+# Predict BLUPs
+G_hat_bayesL <- predict(model_bayesL, 
+                     classify = "id", 
+                     only = "id", 
+                     sed = TRUE,
+                     ignore = c("Location", (Intercept))$pvals)
+
+# Check for NA std.errors
+summary(G_hat_bayesL$std.error)
+
+# Remove rows with NA std.error
+G_hat_bayesL <- G_hat_bayesL[!is.na(G_hat_bayesL$std.error), ]
+
+# Calculate reliability
+se_bayesL <- G_hat_bayesL$std.error
+pev_bayesL <- se_bayesL^2
+rel_bayesL <- 1 - (pev_bayesL / Vg_bayesL)
+
+# Output
+print(mean(rel_bayesL, na.rm = TRUE))
+# 0.1804401
+
+mean_rel_bayesL<-mean(rel_bayesL, na.rm = TRUE)
+
+
+summary(rel_bayesL)
+ #Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ #0.1072  0.1080  0.1081  0.1804  0.2754  0.5630
+
+#####BayesR########
+bayesR_prediction$Unit<-as.factor(bayesR_prediction$Unit)
+bayesR_prediction$Block<-as.factor(bayesR_prediction$Block)
+bayesR_prediction$Location<-as.factor(bayesR_prediction$Location)
+bayesR_prediction$id<-as.factor(bayesR_prediction$id)
+# Observed Grain yield with location
+model_bayesR <- asreml(bayesR_prediction ~ Location,  
+                    random = ~  id +
+                      id:Block +  id:Location,
+                     data = bayesR_prediction,
+                    na.action = na.method(y="include", x="include"))
+
+
+#get hertability, report the matricies, by environment  
+varcomp_bayesR<-summary(model_bayesR)$varcomp
+
+# Assign variance components
+#This wibayesR sum the genetic variance across abayesR locations.
+V_A_bayesR <- sum(varcomp_bayesR[grep("id", rownames(varcomp_bayesR)), "component"], na.rm = TRUE)
+
+V_E_bayesR <- varcomp_bayesR[grep("units!R", rownames(varcomp_bayesR)), "component"]
+
+V_GE_bayesR <- varcomp_bayesR["id:Location", "component"]
+
+# Calculate heritability
+h2_bayesR <- V_A_bayesR / (V_A_bayesR + V_E_bayesR + V_GE_bayesR)
+print(h2_bayesR)
+# 0.1259243
+
+
+#save genetic variance in an object
+Vg_bayesR<- summary(model_bayesR)$varcomp['id', 'component']
+
+
+#get the coefficients of the genotype effect
+Vg_row_bayesR <- grep("^id", rownames(varcomp_bayesR), value = TRUE)
+Vg_bayesR <- varcomp_bayesR[Vg_row_bayesR[1], "component"]
+
+# Predict BLUPs
+G_hat_bayesR <- predict(model_bayesR, 
+                     classify = "id", 
+                     only = "id", 
+                     sed = TRUE,
+                     ignore = c("Location", (Intercept))$pvals)
+
+# Check for NA std.errors
+summary(G_hat_bayesR$std.error)
+
+# Remove rows with NA std.error
+G_hat_bayesR <- G_hat_bayesR[!is.na(G_hat_bayesR$std.error), ]
+
+# Calculate reliability
+se_bayesR <- G_hat_bayesR$std.error
+pev_bayesR <- se_bayesR^2
+rel_bayesR <- 1 - (pev_bayesR / Vg_bayesR)
+
+# Output
+print(mean(rel_bayesR, na.rm = TRUE))
+# 0.166605
+
+mean_rel_bayesR<-mean(rel_bayesR, na.rm = TRUE)
+
+
+summary(rel_bayesR)
+#  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.09403 0.09479 0.09486 0.16661 0.26043 0.54956 
+
+
+########lineal lasso########
+Ll_prediction$Unit<-as.factor(Ll_prediction$Unit)
+Ll_prediction$Block<-as.factor(Ll_prediction$Block)
+Ll_prediction$Location<-as.factor(Ll_prediction$Location)
+Ll_prediction$id<-as.factor(Ll_prediction$id)
+# Observed Grain yield with location
+model_Ll <- asreml(Ll_prediction ~ Location,  
+                    random = ~  id +
+                      id:Block +  id:Location,
+                     data = Ll_prediction,
+                    na.action = na.method(y="include", x="include"))
+
+
+#get hertability, report the matricies, by environment  
+varcomp_Ll<-summary(model_Ll)$varcomp
+
+# Assign variance components
+#This will sum the genetic variance across all locations.
+V_A_Ll <- sum(varcomp_Ll[grep("id", rownames(varcomp_Ll)), "component"], na.rm = TRUE)
+
+V_E_Ll <- varcomp_Ll[grep("units!R", rownames(varcomp_Ll)), "component"]
+
+V_GE_Ll <- varcomp_Ll["id:Location", "component"]
+
+# Calculate heritability
+h2_Ll <- V_A_Ll / (V_A_Ll + V_E_Ll + V_GE_Ll)
+print(h2_Ll)
+# 0.1354659
+
+
+#save genetic variance in an object
+Vg_Ll<- summary(model_Ll)$varcomp['id', 'component']
+
+
+#get the coefficients of the genotype effect
+Vg_row_Ll <- grep("^id", rownames(varcomp_Ll), value = TRUE)
+Vg_Ll <- varcomp_Ll[Vg_row_Ll[1], "component"]
+
+# Predict BLUPs
+G_hat_Ll <- predict(model_Ll, 
+                     classify = "id", 
+                     only = "id", 
+                     sed = TRUE,
+                     ignore = c("Location", (Intercept))$pvals)
+
+# Check for NA std.errors
+summary(G_hat_Ll$std.error)
+
+# Remove rows with NA std.error
+G_hat_Ll <- G_hat_Ll[!is.na(G_hat_Ll$std.error), ]
+
+# Calculate reliability
+se_Ll <- G_hat_Ll$std.error
+pev_Ll <- se_Ll^2
+rel_Ll <- 1 - (pev_Ll / Vg_Ll)
+
+# Output
+print(mean(rel_Ll, na.rm = TRUE))
+# 0.1723428
+
+mean_rel_ll<-mean(rel_Ll, na.rm = TRUE)
+
+
+summary(rel_Ll)
+#  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.09761 0.09840 0.09848 0.17234 0.26935 0.56119 
+
+#####linear ridge######
+Lr_prediction$Unit<-as.factor(Lr_prediction$Unit)
+Lr_prediction$Block<-as.factor(Lr_prediction$Block)
+Lr_prediction$Location<-as.factor(Lr_prediction$Location)
+Lr_prediction$id<-as.factor(Lr_prediction$id)
+# Observed Grain yield with location
+model_Lr <- asreml(Lr_prediction ~ Location,  
+                    random = ~  id + Location:Block  + id:Location,
+                     data = Lr_prediction,
+                    na.action = na.method(y="include", x="include"))
+
+model_Lr<-update(model_Lr)
+
+#get hertability, report the matricies, by environment  
+varcomp_Lr<-summary(model_Lr)$varcomp
+
+# Assign variance components
+#This wiLr sum the genetic variance across aLr locations.
+V_A_Lr <- sum(varcomp_Lr[grep("id", rownames(varcomp_Lr)), "component"], na.rm = TRUE)
+
+V_E_Lr <- varcomp_Lr[grep("units!R", rownames(varcomp_Lr)), "component"]
+
+V_GE_Lr <- varcomp_Lr[grep("id:Location", rownames(varcomp_Lr)), "component"]
+
+# Calculate heritability
+h2_Lr <- V_A_Lr / (V_A_Lr + V_E_Lr + V_GE_Lr)
+print(h2_Lr)
+#  0.119025
+
+
+#save genetic variance in an object
+Vg_Lr<- summary(model_Lr)$varcomp['id', 'component']
+
+
+#get the coefficients of the genotype effect
+Vg_row_Lr <- grep("^id", rownames(varcomp_Lr), value = TRUE)
+Vg_Lr <- varcomp_Lr[Vg_row_Lr[1], "component"]
+
+# Predict BLUPs
+G_hat_Lr <- predict(model_Lr, 
+                     classify = "id", 
+                     only = "id", 
+                     sed = TRUE,
+                     ignore = c("Location", (Intercept))$pvals)
+
+# Check for NA std.errors
+summary(G_hat_Lr$std.error)
+
+# Remove rows with NA std.error
+G_hat_Lr <- G_hat_Lr[!is.na(G_hat_Lr$std.error), ]
+
+# Calculate reliability
+se_Lr <- G_hat_Lr$std.error
+pev_Lr <- se_Lr^2
+rel_Lr <- 1 - (pev_Lr / Vg_Lr)
+
+# Output
+print(mean(rel_Lr, na.rm = TRUE))
+# 0.1621163
+
+mean_rel_lr<-mean(rel_Lr, na.rm = TRUE)
+
+
+summary(rel_Lr)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#0.09972 0.10033 0.10039 0.16212 0.24143 0.51064 
+
+
+####linear elastinet####
+Le_prediction$Unit<-as.factor(Le_prediction$Unit)
+Le_prediction$Block<-as.factor(Le_prediction$Block)
+Le_prediction$Location<-as.factor(Le_prediction$Location)
+Le_prediction$id<-as.factor(Le_prediction$id)
+# Observed Grain yield with location
+model_Le <- asreml(Le_prediction ~ Location ,  
+                    random = ~  id +
+                             Location:Block  + id:Location,
+                     data = Le_prediction,
+                    na.action = na.method(y="include", x="include"))
+
+model_Le<-update(model_Le)
+
+#get hertability, report the matricies, by environment  
+varcomp_Le<-summary(model_Le)$varcomp
+
+
+# Assign variance components
+#This Le sum the genetic variance across aLe locations.
+V_A_Le <- sum(varcomp_Le[grep("id", rownames(varcomp_Le)), "component"], na.rm = TRUE)
+
+V_E_Le <- varcomp_Le[grep("units!R", rownames(varcomp_Le)), "component"]
+
+V_GE_Le <- varcomp_Le[grep("id:Location", rownames(varcomp_Le)), "component"]
+
+# Calculate heritability
+h2_Le <- V_A_Le / (V_A_Le + V_E_Le + V_GE_Le )
+print(h2_Le)
+#  0.1474399
+
+#save genetic variance in an object
+Vg_Le<- summary(model_Le)$varcomp
+
+#get the coefficients of the genotype effect
+Vg_row_Le <- grep("^id", rownames(varcomp_Le), value = TRUE)
+Vg_Le <- varcomp_Le[Vg_row_Le[1], "component"]
+
+# Predict BLUPs
+G_hat_Le <- predict(model_Le, 
+                     classify = "id", 
+                     only = "id", 
+                     sed = TRUE,
+                     ignore = c("Location", "(Intercept)"))$pvals
+
+# Check for NA std.errors
+summary(G_hat_Le$std.error)
+
+# Remove rows with NA std.error
+G_hat_Le <- G_hat_Le[!is.na(G_hat_Le$std.error), ]
+
+# Calculate reliability
+se_Le <- G_hat_Le$std.error
+pev_Le <- se_Le^2
+rel_Le <- 1 - (pev_Le / Vg_Le)
+
+# Output
+print(mean(rel_Le, na.rm = TRUE))
+#0.2130821
+
+mean_rel_le<-mean(rel_Le, na.rm = TRUE)
+
+summary(rel_Le)
+#Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.1416  0.1424  0.1425  0.2131  0.3059  0.5841 
+```
+Heritability and reliability index
+```{r}
+# Match all NDVI columns
+ndvi_columns <- grep("^NDVI_", names(sampled_All), value = TRUE)
+
+results_list <- list()
+results_summary <- data.frame(
+  Trait = character(),
+  Heritability = numeric(),
+  Genetic_Variance = numeric(),
+  Mean_Reliability = numeric(),
+  stringsAsFactors = FALSE
+)
+
+if (length(ndvi_columns) > 0) {
+  for (col in ndvi_columns) {
+    valid_data <- sampled_All[!is.na(sampled_All[[col]]), ]
+    valid_data$germplasmDbId <- as.factor(valid_data$germplasmDbId)
+    valid_data$Location <- as.factor(valid_data$Location)
+    valid_data$blockNumber <- as.factor(valid_data$blockNumber)
+
+    tryCatch({
+      formula <- as.formula(paste(col, "~ Location"))
+      model <- asreml(
+        fixed = formula,
+        random = ~ germplasmDbId + blockNumber + germplasmDbId:blockNumber,
+        data = valid_data,
+        na.action = na.method(y = "include", x = "include")
+      )
+      varcomp <- summary(model)$varcomp
+
+      if ("germplasmDbId" %in% rownames(varcomp)) {
+        Vg <- sum(varcomp[grep("germplasmDbId", rownames(varcomp)), "component"], na.rm = TRUE)
+        V_E <- varcomp[grep("units", rownames(varcomp)), "component"]
+        V_GE <- varcomp["germplasmDbId:blockNumber", "component"]
+        h2 <- Vg / (Vg + V_GE + V_E)
+
+        # Debugging: Print Vg and h2
+        print(paste("Trait:", col, "Vg:", Vg, "h2:", h2))
+
+        # Predict BLUPs for germplasmDbId
+        G_hat <- predict(model, classify = "germplasmDbId", only = "germplasmDbId", sed = TRUE, ignore = c("Location","(Intercept)"))$pvals
+        G_hat <- G_hat[!is.na(G_hat$std.error), ]
+
+        # Debugging: Print G_hat
+        print(G_hat)
+
+        # Calculate reliability
+        if (nrow(G_hat) > 0) {
+          se <- G_hat$std.error
+          pev <- se^2
+          rel <- 1 - (pev / Vg)
+          mean_rel <- mean(rel, na.rm = TRUE)
+        } else {
+          rel <- NA
+          mean_rel <- NA
+        }
+      } else {
+        h2 <- NA
+        Vg <- NA
+        rel <- NA
+        mean_rel <- NA
+      }
+
+      # Store results in the list
+      results_list[[col]] <- list(model = model, h2 = h2, Vg = Vg, rel = rel)
+
+      # Append results to the summary data frame
+      results_summary <- rbind(results_summary, data.frame(
+        Trait = col,
+        Heritability = round(h2, 3),
+        Genetic_Variance = round(Vg, 6),
+        Mean_Reliability = round(mean_rel, 3),
+        stringsAsFactors = FALSE
+      ))
+    }, error = function(e) {
+      message(paste("Error in model for column:", col, " - ", e$message))
+    })
+  }
+
+  # Print the summary of results
+  print(results_summary)
+} else {
+  message("No NDVI columns found.")
+}
+
+```
+
+```{r}
+# Match all GNDVI columns
+GNDVI_columns <- grep("^GNDVI_", names(sampled_All), value = TRUE)
+
+results_list <- list()
+results_GNDVI <- data.frame(
+  Trait = character(),
+  Heritability = numeric(),
+  Genetic_Variance = numeric(),
+  Mean_Reliability = numeric(),
+  stringsAsFactors = FALSE
+)
+
+if (length(GNDVI_columns) > 0) {
+  for (col in GNDVI_columns) {
+    valid_data <- sampled_All[!is.na(sampled_All[[col]]), ]
+    valid_data$germplasmDbId <- as.factor(valid_data$germplasmDbId)
+    valid_data$Location <- as.factor(valid_data$Location)
+    valid_data$blockNumber <- as.factor(valid_data$blockNumber)
+
+    tryCatch({
+      formula <- as.formula(paste(col, "~ Location"))
+      model <- asreml(
+        fixed = formula,
+        random = ~ germplasmDbId + blockNumber + germplasmDbId:blockNumber,
+        data = valid_data,
+        na.action = na.method(y = "include", x = "include")
+      )
+      varcomp <- summary(model)$varcomp
+
+      if ("germplasmDbId" %in% rownames(varcomp)) {
+        Vg <- sum(varcomp[grep("germplasmDbId", rownames(varcomp)), "component"], na.rm = TRUE)
+        V_E <- varcomp[grep("units", rownames(varcomp)), "component"]
+        V_GE <- varcomp["germplasmDbId:blockNumber", "component"]
+        h2 <- Vg / (Vg + V_GE + V_E)
+
+        # Debugging: Print Vg and h2
+        print(paste("Trait:", col, "Vg:", Vg, "h2:", h2))
+
+        # Predict BLUPs for germplasmDbId
+        G_hat <- predict(model, classify = "germplasmDbId", only = "germplasmDbId", sed = TRUE, ignore = "(Intercept)")$pvals
+        G_hat <- G_hat[!is.na(G_hat$std.error), ]
+
+        # Debugging: Print G_hat
+        print(G_hat)
+
+        # Calculate reliability
+        if (nrow(G_hat) > 0) {
+          se <- G_hat$std.error
+          pev <- se^2
+          rel <- 1 - (pev / Vg)
+          mean_rel <- mean(rel, na.rm = TRUE)
+        } else {
+          rel <- NA
+          mean_rel <- NA
+        }
+      } else {
+        h2 <- NA
+        Vg <- NA
+        rel <- NA
+        mean_rel <- NA
+      }
+
+      # Store results in the list
+      results_list[[col]] <- list(model = model, h2 = h2, Vg = Vg, rel = rel)
+
+      # Append results to the summary data frame
+      results_GNDVI <- rbind(results_GNDVI, data.frame(
+        Trait = col,
+        Heritability = round(h2, 3),
+        Genetic_Variance = round(Vg, 6),
+        Mean_Reliability = round(mean_rel, 3),
+        stringsAsFactors = FALSE
+      ))
+    }, error = function(e) {
+      message(paste("Error in model for column:", col, " - ", e$message))
+    })
+  }
+
+  # Print the summary of results
+  print(results_GNDVI)
+} else {
+  message("No GNDVI columns found.")
+}
+```
+
+
+```{r}
+# Match all EVI columns
+EVI_columns <- grep("^EVI_", names(sampled_All), value = TRUE)
+
+results_list <- list()
+results_EVI <- data.frame(
+  Trait = character(),
+  Heritability = numeric(),
+  Genetic_Variance = numeric(),
+  Mean_Reliability = numeric(),
+  stringsAsFactors = FALSE
+)
+
+if (length(EVI_columns) > 0) {
+  for (col in EVI_columns) {
+    valid_data <- sampled_All[!is.na(sampled_All[[col]]), ]
+    valid_data$germplasmDbId <- as.factor(valid_data$germplasmDbId)
+    valid_data$Location <- as.factor(valid_data$Location)
+    valid_data$blockNumber <- as.factor(valid_data$blockNumber)
+
+    tryCatch({
+      formula <- as.formula(paste(col, "~ Location"))
+      model <- asreml(
+        fixed = formula,
+        random = ~ germplasmDbId + blockNumber + germplasmDbId:blockNumber,
+        data = valid_data,
+        na.action = na.method(y = "include", x = "include")
+      )
+      varcomp <- summary(model)$varcomp
+
+      if ("germplasmDbId" %in% rownames(varcomp)) {
+        Vg <- sum(varcomp[grep("germplasmDbId", rownames(varcomp)), "component"], na.rm = TRUE)
+        V_E <- varcomp[grep("units", rownames(varcomp)), "component"]
+        V_GE <- varcomp["germplasmDbId:blockNumber", "component"]
+        h2 <- Vg / (Vg + V_GE + V_E)
+
+        # Debugging: Print Vg and h2
+        print(paste("Trait:", col, "Vg:", Vg, "h2:", h2))
+
+        # Predict BLUPs for germplasmDbId
+        G_hat <- predict(model, classify = "germplasmDbId", only = "germplasmDbId", sed = TRUE, ignore = "(Intercept)")$pvals
+        G_hat <- G_hat[!is.na(G_hat$std.error), ]
+
+        # Debugging: Print G_hat
+        print(G_hat)
+
+        # Calculate reliability
+        if (nrow(G_hat) > 0) {
+          se <- G_hat$std.error
+          pev <- se^2
+          rel <- 1 - (pev / Vg)
+          mean_rel <- mean(rel, na.rm = TRUE)
+        } else {
+          rel <- NA
+          mean_rel <- NA
+        }
+      } else {
+        h2 <- NA
+        Vg <- NA
+        rel <- NA
+        mean_rel <- NA
+      }
+
+      # Store results in the list
+      results_list[[col]] <- list(model = model, h2 = h2, Vg = Vg, rel = rel)
+
+      # Append results to the summary data frame
+      results_EVI <- rbind(results_EVI, data.frame(
+        Trait = col,
+        Heritability = round(h2, 3),
+        Genetic_Variance = round(Vg, 6),
+        Mean_Reliability = round(mean_rel, 3),
+        stringsAsFactors = FALSE
+      ))
+    }, error = function(e) {
+      message(paste("Error in model for column:", col, " - ", e$message))
+    })
+  }
+
+  # Print the summary of results
+  print(results_EVI)
+} else {
+  message("No EVI columns found.")
+}
+```
+
+
+```{r}
+
+models<- c("h2_mb", "h2_rf", "h2_xg", "h2_cat", "h2_pcr", "h2_BayesA", "h2_bayesL", "h2_bayesR", "h2_Ll", "h2_Le", "h2_Lr", "h2_All")
+#loop to get results into a vector
+h<-c()
+
+for(i in 1:length(models)){
+  h<- append(h, get(models[i]))
+}
+
+
+model1s<- c("mean_rel_mb", "mean_rel_rf", "mean_rel_xg", "mean_rel_cat", "mean_rel_pcr", "mean_rel_bayesA", "mean_rel_bayesL", "mean_rel_bayesR", "mean_rel_ll", "mean_rel_le", "mean_rel_lr", "mean_rel_All")
+#loop to get results into a vector
+r<-c()
+
+for(i in 1:length(model1s)){
+  r<- append(r, get(model1s[i]))
+}
+
+model2<- c("mb", "rf", "xg", "cat", "pcr", "bayesA", "bayesL", "bayesR", "ll", "le", "lr", "All")
+
+#create data frame with model and predictive ability
+Table_rh<- data.frame(Model=model2, Mean_Reliability=r, Heritability=h)
+
+Table_rh
+```
+```{r}
+# Load libraries
+library(ggplot2)
+library(tidyr)
+# Reshape to long format for plotting
+df_long <- pivot_longer(Table_rh,
+                        cols = c(Heritability, Mean_Reliability),
+                        names_to = "Metric",
+                        values_to = "Value")
+
+# Plot grouped bar chart
+ggplot(df_long, aes(x = Model, y = Value, fill = Metric)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_manual(values = c("steelblue", "orange")) +
+  labs(title = "Heritability and Mean Reliability by Trait",
+       x = "Trait",
+       y = "Value",
+       fill = "Metric") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ylim(0, 1)
+
+
+
+
+```
+
+Boxplot
+```{r}
+results_summary$index<-"NDVI"
+results_GNDVI$index<-"GNDVI"
+results_EVI$index<-"EVI"
+
+indexRH<-rbind(results_summary, results_GNDVI)
+
+indexRH<-rbind(indexRH, results_EVI)
+
+indexRH$Genetic_Variance<-NULL
+
+# Reshape the data to long format
+indexRHv <-indexRH %>%
+  pivot_longer(cols = c(Heritability, Mean_Reliability), names_to = "Measure", values_to = "Value")
+
+
+
+# Plot boxplot with jitter, grouped by index and colored by Measure
+ggplot(indexRHv, aes(x = index, y = Value, fill = Measure)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.5, position = position_dodge(width = 0.8)) +  # dodge to separate boxes side-by-side
+  geom_jitter(aes(color = Measure), size = 2, alpha = 0.7, position = position_dodge(width = 0.8)) +  # jitter also dodged to align with boxes
+  labs(x = "Index", y = "Value") +
+  theme_minimal() +   scale_fill_manual(values = c("darkgreen", "orange")) + scale_color_manual(values = c("purple", "blue")) +
+  theme(legend.position = "top",
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        plot.title = element_text(size = 16, face = "bold"))
+
+
+```
+
+```{r f}
+
+
+#Observed Grain yield with location
+model_NDVI_10 <- asreml(fixed=NDVI_10 ~ Location,  
+                   random = ~ germplasmDbId +
+                             Location:blockNumber  + germplasmDbId:Location,
+                   data = sampled_All,
+                   na.action = na.method(y="include", x="include"))
+
+model_NDVI_10<-update(model_NDVI_10)
+
+#get hertability, report the matricies, by environment  
+varcompNDVI_10<-summary(model_NDVI_10)$varcomp
+View(varcompNDVI_10)
+# Revisar los nombres disponibles
+print(rownames(varcompNDVI_10))
+varcompNDVI_10<-summary(model_NDVI_10)$varcomp
+# Assign variance components
+#This will sum the genetic variance across NDVI_10 locations.
+V_A_NDVI_10 <- sum(varcompNDVI_10[grep("germplasmDbId", rownames(varcompNDVI_10)), "component"], na.rm = TRUE)
+
+V_E_NDVI_10 <- varcompNDVI_10[grep("units!R", rownames(varcompNDVI_10)), "component"]
+
+V_GE_NDVI_10 <- varcompNDVI_10["germplasmDbId:Location", "component"]
+
+# Calculate heritability
+h2_NDVI_10 <- V_A_NDVI_10 / (V_A_NDVI_10 + V_E_NDVI_10 + V_GE_NDVI_10)
+print(h2_NDVI_10)
+#  0.2295485
+
+
+# Get variance components
+varcompNDVI_10 <- summary(model_NDVI_10)$varcomp
+Vg_row <- grep("^germplasmDbId", rownames(varcompNDVI_10), value = TRUE)
+Vg_NDVI_10 <- varcompNDVI_10[Vg_row[1], "component"]
+
+# Predict BLUPs
+G_hat_NDVI_10 <- predict(model_NDVI_10, 
+                     classify = "germplasmDbId", 
+                     only = "germplasmDbId", 
+                     sed = TRUE,
+                     ignore = c("Location", "(Intercept)"))$pvals
+
+# Check for NA std.errors
+summary(G_hat_NDVI_10$std.error)
+
+# Remove rows with NA std.error
+G_hat_NDVI_10 <- G_hat_NDVI_10[!is.na(G_hat_NDVI_10$std.error), ]
+
+# Calculate reliability
+se_NDVI_10 <- G_hat_NDVI_10$std.error
+pev_NDVI_10 <- se_NDVI_10^2
+rel_NDVI_10 <- 1 - (pev_NDVI_10 / Vg_NDVI_10)
+
+# Output
+print(mean(rel_NDVI_10, na.rm = TRUE))
+#0.329554
+
+mean_rel_NDVI_10<-mean(rel_NDVI_10, na.rm = TRUE)
+
+summary(rel_NDVI_10)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.2276  0.2290  0.2292  0.3296  0.4703  0.7474 
+
+
+```
+

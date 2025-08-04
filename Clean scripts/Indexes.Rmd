@@ -1,0 +1,2222 @@
+---
+title: "Bands and vegetation indexes"
+author: "Christian Escoto"
+date: "2025-06-17"
+output: pdf_document
+---
+
+Packages
+```{r}
+library(dplyr)
+library(tidyverse)
+```
+
+Dataframe with the information from the drones
+```{r HTP}
+HTP<-read.csv("HTPMET.csv")
+```
+
+Upload the information with the flights
+```{r Flights}
+Neo22_allflights<-read.csv("N22.allflights.csv")
+Neo23_allflights<-read.csv("N23.allflights.csv")
+
+Urb22_allflights<-read.csv("U22.allflights.csv")
+Urb23_allflights<-read.csv("U23.allflights.csv")
+
+
+StP22_allflights<-read.csv("StP22.allflights.csv")
+StP23_allflights<-read.csv("StP23.allflights.csv")
+
+```
+
+
+```{r Separate HTP from each location}
+N22<-HTP%>%
+  filter(studyName=="YT_Neo_22")
+
+N23<-HTP%>%
+  filter(studyName=="YT_Neo_23")
+
+U22<-HTP%>%
+  filter(studyName=="YT_Urb_22")
+
+U23<-HTP%>%
+  filter(studyName=="YT_Urb_23")
+
+StP22<-HTP%>%
+  filter(studyName=="YT_Stp_22")
+
+StP23<-HTP%>%
+  filter(studyName=="YT_Stp_23")
+
+```
+
+```{r N22 prepare bands}
+
+N22.b<-NULL
+
+N22.b$Unit<-N22$observationUnitDbId
+
+N22.b<-as.data.frame(N22.b)
+
+#I am going to add some columns to make give a a good format to the database. 
+# Define the days and Units
+days <- Neo22_allflights$julian
+Units<-as.vector(N22.b$Unit)
+
+
+# Create all possible combinations using expand.grid
+
+N22.b<-expand.grid(Units, days)
+
+N22.b[ , 'red'] <- NA
+N22.b[ , 'green'] <- NA
+N22.b[ , 'blue'] <- NA
+N22.b[ , 'NIR'] <- NA
+N22.b[ , 'RedEdge'] <- NA
+
+
+N22.b$red<-ifelse(N22.b$Var2==104, N22$Canopy.Reflectance...Red...reflectance.ratio.day.104.COMP.0000823, ifelse(
+  N22.b$Var2 == 117,
+  N22$Canopy.Reflectance...Red...reflectance.ratio.day.117.COMP.0000837,
+  ifelse(
+    N22.b$Var2 == 124,
+    N22$Canopy.Reflectance...Red...reflectance.ratio.day.124.COMP.0000845,
+    ifelse(
+      N22.b$Var2 == 130,
+      N22$Canopy.Reflectance...Red...reflectance.ratio.day.130.COMP.0000852,
+      ifelse(
+        N22.b$Var2 == 132,
+        N22$Canopy.Reflectance...Red...reflectance.ratio.day.132.COMP.0000854,
+        ifelse(
+          N22.b$Var2 == 137,
+          N22$Canopy.Reflectance...Red...reflectance.ratio.day.137.COMP.0000859,
+          ifelse(
+            N22.b$Var2 == 151,
+            N22$Canopy.Reflectance...Red...reflectance.ratio.day.151.COMP.0000875,
+            ifelse(
+              N22.b$Var2 == 164,
+              N22$Canopy.Reflectance...Red...reflectance.ratio.day.164.COMP.0000889,
+              ifelse(
+                N22.b$Var2 == 165,
+                N22$Canopy.Reflectance...Red...reflectance.ratio.day.165.COMP.0000890,
+                NA
+              
+  )
+)
+)
+)
+)
+)
+)
+)
+)
+
+N22.b$blue<-ifelse(N22.b$Var2==104, N22$Canopy.Reflectance...Blue...reflectance.ratio.day.104.COMP.0000081, ifelse(
+  N22.b$Var2 == 117,
+  N22$Canopy.Reflectance...Blue...reflectance.ratio.day.117.COMP.0000095,
+  ifelse(
+    N22.b$Var2 == 124,
+    N22$Canopy.Reflectance...Blue...reflectance.ratio.day.124.COMP.0000102,
+    ifelse(
+      N22.b$Var2 == 130,
+      N22$Canopy.Reflectance...Blue...reflectance.ratio.day.130.COMP.0000109,
+      ifelse(
+        N22.b$Var2 == 132,
+        N22$Canopy.Reflectance...Blue...reflectance.ratio.day.132.COMP.0000111,
+        ifelse(
+          N22.b$Var2 == 137,
+          N22$Canopy.Reflectance...Blue...reflectance.ratio.day.137.COMP.0000116,
+          ifelse(
+            N22.b$Var2 == 151,
+            N22$Canopy.Reflectance...Blue...reflectance.ratio.day.151.COMP.0000132,
+            ifelse(
+              N22.b$Var2 == 164,
+              N22$Canopy.Reflectance...Blue...reflectance.ratio.day.164.COMP.0000146,
+              ifelse(
+                N22.b$Var2 == 165,
+              N22$Canopy.Reflectance...Blue...reflectance.ratio.day.165.COMP.0000147,
+              NA
+            ))
+          )
+        )
+      )
+    )
+  )
+)
+)
+
+N22.b$green<-ifelse(N22.b$Var2==104, N22$Canopy.Reflectance...Green...reflectance.ratio.day.104.COMP.0000449, ifelse(
+  N22.b$Var2 == 117,
+  N22$Canopy.Reflectance...Green...reflectance.ratio.day.117.COMP.0000463,
+  ifelse(
+    N22.b$Var2 == 124,
+    N22$Canopy.Reflectance...Green...reflectance.ratio.day.124.COMP.0000471,
+    ifelse(
+      N22.b$Var2 == 130,
+      N22$Canopy.Reflectance...Green...reflectance.ratio.day.130.COMP.0000478,
+      ifelse(
+        N22.b$Var2 == 132,
+        N22$Canopy.Reflectance...Green...reflectance.ratio.day.132.COMP.0000480,
+        ifelse(
+          N22.b$Var2 == 137,
+          N22$Canopy.Reflectance...Green...reflectance.ratio.day.137.COMP.0000485,
+          ifelse(N22.b$Var2 == 151,
+            N22$Canopy.Reflectance...Green...reflectance.ratio.day.151.COMP.0000501,
+            ifelse(
+              N22.b$Var2 == 164,
+              N22$Canopy.Reflectance...Green...reflectance.ratio.day.164.COMP.0000515,
+               ifelse(
+                N22.b$Var2 == 165,
+              N22$Canopy.Reflectance...Green...reflectance.ratio.day.165.COMP.0000516, NA
+            )
+          )
+        )
+      )
+    )
+  )
+)
+)
+)
+
+N22.b$NIR<-ifelse(N22.b$Var2==104, N22$Canopy.Reflectance...NIR...reflectance.ratio.day.104.COMP.0000636, ifelse(
+  N22.b$Var2 == 117,
+  N22$Canopy.Reflectance...NIR...reflectance.ratio.day.117.COMP.0000650,
+  ifelse(
+    N22.b$Var2 == 124,
+    N22$Canopy.Reflectance...NIR...reflectance.ratio.day.124.COMP.0000658,
+    ifelse(
+      N22.b$Var2 == 130,
+      N22$Canopy.Reflectance...NIR...reflectance.ratio.day.130.COMP.0000665,
+      ifelse(
+        N22.b$Var2 == 132,
+        N22$Canopy.Reflectance...NIR...reflectance.ratio.day.132.COMP.0000667,
+        ifelse(
+          N22.b$Var2 == 137,
+          N22$Canopy.Reflectance...NIR...reflectance.ratio.day.137.COMP.0000672,
+          ifelse(
+            N22.b$Var2 == 151,
+            N22$Canopy.Reflectance...NIR...reflectance.ratio.day.151.COMP.0000688,
+            ifelse(
+              N22.b$Var2 == 164,
+              N22$Canopy.Reflectance...NIR...reflectance.ratio.day.164.COMP.0000702,
+              ifelse(
+                 N22.b$Var2 == 165,
+              N22$Canopy.Reflectance...NIR...reflectance.ratio.day.165.COMP.0000703, NA
+            )
+          )
+        )
+      )
+    )
+  )
+)
+)
+)
+
+N22.b$RedEdge<-ifelse(N22.b$Var2==104, N22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.104.COMP.0001010, ifelse(
+  N22.b$Var2 == 117,
+  N22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.117.COMP.0001024,
+  ifelse(
+    N22.b$Var2 == 124,
+    N22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.124.COMP.0001032,
+    ifelse(
+      N22.b$Var2 == 130,
+      N22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.130.COMP.0001039,
+      ifelse(
+        N22.b$Var2 == 132,
+        N22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.132.COMP.0001041,
+        ifelse(
+          N22.b$Var2 == 137,
+          N22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.137.COMP.0001046,
+          ifelse(
+            N22.b$Var2 == 151,
+            N22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.151.COMP.0001062,
+            ifelse(
+              N22.b$Var2 == 164,
+              N22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.164.COMP.0001076,
+               ifelse(
+                 N22.b$Var2 == 165,
+                 N22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.165.COMP.0001077,NA
+            )
+          )
+        )
+      )
+    )
+  )
+)))
+
+
+```
+
+
+```{r N23 prepare bands}
+N23.b<-NULL
+
+N23.b$Unit<-N23$observationUnitDbId
+
+N23.b<-as.data.frame(N23.b)
+
+#I am going to add some columns to make give a addecuated format to the database. 
+# Define the days and Units
+days <- Neo23_allflights$julian
+Units<-as.vector(N23.b$Unit)
+
+
+# Create all possible combinations using expand.grid
+
+N23.b<-expand.grid(Units, days)
+
+N23.b[ , 'red'] <- NA
+N23.b[ , 'green'] <- NA
+N23.b[ , 'blue'] <- NA
+N23.b[ , 'NIR'] <- NA
+N23.b[ , 'RedEdge'] <- NA
+
+
+N23.b$red<-ifelse(N23.b$Var2==52, N23$Canopy.Reflectance...Red...reflectance.ratio.day.52.COMP.0000952, ifelse(
+  N23.b$Var2 == 96,
+  N23$Canopy.Reflectance...Red...reflectance.ratio.day.96.COMP.0001000,
+  ifelse(
+    N23.b$Var2 == 103,
+    N23$Canopy.Reflectance...Red...reflectance.ratio.day.103.COMP.0000822,
+    ifelse(
+      N23.b$Var2 == 114,
+      N23$Canopy.Reflectance...Red...reflectance.ratio.day.114.COMP.0000834,
+      ifelse(
+        N23.b$Var2 == 123,
+        N23$Canopy.Reflectance...Red...reflectance.ratio.day.123.COMP.0000844,
+        ifelse(
+          N23.b$Var2 == 129,
+          N23$Canopy.Reflectance...Red...reflectance.ratio.day.129.COMP.0000850,
+          ifelse(
+            N23.b$Var2 == 137,
+            N23$Canopy.Reflectance...Red...reflectance.ratio.day.137.COMP.0000859,
+            ifelse(
+              N23.b$Var2 == 152,
+              N23$Canopy.Reflectance...Red...reflectance.ratio.day.152.COMP.0000876, ifelse(
+                N23.b$Var2 == 156,
+                N23$Canopy.Reflectance...Red...reflectance.ratio.day.156.COMP.0000880,
+                ifelse(
+                   N23.b$Var2 == 164,
+              N23$Canopy.Reflectance...Red...reflectance.ratio.day.164.COMP.0000889, NA
+            )
+          )
+        )
+      )
+    )
+  )
+)
+)))
+
+N23.b$blue<-ifelse(N23.b$Var2==52, N23$Canopy.Reflectance...Blue...reflectance.ratio.day.52.COMP.0000209, ifelse(
+  N23.b$Var2 == 96,
+  N23$Canopy.Reflectance...Blue...reflectance.ratio.day.96.COMP.0000257,
+  ifelse(
+    N23.b$Var2 == 103,
+    N23$Canopy.Reflectance...Blue...reflectance.ratio.day.103.COMP.0000080,
+    ifelse(
+      N23.b$Var2 == 114,
+      N23$Canopy.Reflectance...Blue...reflectance.ratio.day.114.COMP.0000092,
+      ifelse(
+        N23.b$Var2 == 123,
+        N23$Canopy.Reflectance...Blue...reflectance.ratio.day.123.COMP.0000101,
+        ifelse(
+          N23.b$Var2 == 129,
+          N23$Canopy.Reflectance...Blue...reflectance.ratio.day.129.COMP.0000107,
+          ifelse(
+            N23.b$Var2 == 137,
+            N23$Canopy.Reflectance...Blue...reflectance.ratio.day.137.COMP.0000116,
+            ifelse(
+              N23.b$Var2 == 152,
+              N23$Canopy.Reflectance...Blue...reflectance.ratio.day.152.COMP.0000133, ifelse(
+                N23.b$Var2 == 156,
+                N23$Canopy.Reflectance...Blue...reflectance.ratio.day.156.COMP.0000137,
+                ifelse(
+                  N23.b$Var2 == 164,
+                N23$Canopy.Reflectance...Blue...reflectance.ratio.day.164.COMP.0000146, NA
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)))
+
+
+
+N23.b$green<-ifelse(N23.b$Var2==52, N23$Canopy.Reflectance...Green...reflectance.ratio.day.52.COMP.0000578, ifelse(
+  N23.b$Var2 == 96,
+  N23$Canopy.Reflectance...Green...reflectance.ratio.day.96.COMP.0000626,
+  ifelse(
+    N23.b$Var2 == 103,
+    N23$Canopy.Reflectance...Green...reflectance.ratio.day.103.COMP.0000448,
+    ifelse(
+      N23.b$Var2 == 114,
+      N23$Canopy.Reflectance...Green...reflectance.ratio.day.114.COMP.0000460,
+      ifelse(
+        N23.b$Var2 == 123,
+        N23$Canopy.Reflectance...Green...reflectance.ratio.day.123.COMP.0000470,
+        ifelse(
+          N23.b$Var2 == 129,
+          N23$Canopy.Reflectance...Green...reflectance.ratio.day.129.COMP.0000476,
+          ifelse(
+            N23.b$Var2 == 137,
+            N23$Canopy.Reflectance...Green...reflectance.ratio.day.137.COMP.0000485,
+            ifelse(
+              N23.b$Var2 == 152,
+              N23$Canopy.Reflectance...Green...reflectance.ratio.day.152.COMP.0000502, ifelse(
+                N23.b$Var2 == 156,
+                N23$Canopy.Reflectance...Green...reflectance.ratio.day.156.COMP.0000506,
+                ifelse(
+                N23.b$Var2 == 164,
+                N23$Canopy.Reflectance...Green...reflectance.ratio.day.164.COMP.0000515, NA
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)))
+
+
+N23.b$RedEdge<-ifelse(N23.b$Var2==52, N23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.52.COMP.0001139, ifelse(
+  N23.b$Var2 == 96,
+  N23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.96.COMP.0001187,
+  ifelse(
+    N23.b$Var2 == 103,
+    N23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.103.COMP.0001009,
+    ifelse(
+      N23.b$Var2 == 114,
+      N23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.114.COMP.0001021,
+      ifelse(
+        N23.b$Var2 == 123,
+        N23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.123.COMP.0001031,
+        ifelse(
+          N23.b$Var2 == 129,
+          N23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.129.COMP.0001037,
+          ifelse(
+            N23.b$Var2 == 137,
+            N23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.137.COMP.0001046,
+            ifelse(
+              N23.b$Var2 == 152,
+              N23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.152.COMP.0001063, ifelse(
+                N23.b$Var2 == 156,
+                N23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.156.COMP.0001067,
+                ifelse(
+                N23.b$Var2 == 164,
+                N23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.164.COMP.0001076, NA
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)))
+
+
+N23.b$NIR<-ifelse(N23.b$Var2==52, N23$Canopy.Reflectance...NIR...reflectance.ratio.day.52.COMP.0000765, ifelse(
+  N23.b$Var2 == 96,
+  N23$Canopy.Reflectance...NIR...reflectance.ratio.day.96.COMP.0000813,
+  ifelse(
+    N23.b$Var2 == 103,
+    N23$Canopy.Reflectance...NIR...reflectance.ratio.day.103.COMP.0000635,
+    ifelse(
+      N23.b$Var2 == 114,
+      N23$Canopy.Reflectance...NIR...reflectance.ratio.day.114.COMP.0000647,
+      ifelse(
+        N23.b$Var2 == 123,
+        N23$Canopy.Reflectance...NIR...reflectance.ratio.day.123.COMP.0000657,
+        ifelse(
+          N23.b$Var2 == 129,
+          N23$Canopy.Reflectance...NIR...reflectance.ratio.day.129.COMP.0000663,
+          ifelse(
+            N23.b$Var2 == 137,
+            N23$Canopy.Reflectance...NIR...reflectance.ratio.day.137.COMP.0000672,
+            ifelse(
+              N23.b$Var2 == 152,
+              N23$Canopy.Reflectance...NIR...reflectance.ratio.day.152.COMP.0000689, ifelse(
+                N23.b$Var2 == 156,
+                N23$Canopy.Reflectance...NIR...reflectance.ratio.day.156.COMP.0000693,
+                ifelse(
+                N23.b$Var2 == 164,
+                N23$Canopy.Reflectance...NIR...reflectance.ratio.day.164.COMP.0000702, NA
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)))
+
+```
+
+```{r U22 prepare bands}
+
+U22.b<-NULL
+
+U22.b$Unit<-U22$observationUnitDbId
+
+U22.b<-as.data.frame(U22.b)
+
+#I am going to add some columns to make give a addecuated format to the database. 
+# Define the days and Units
+days <- Urb22_allflights$julian
+Units<-as.vector(U22.b$Unit)
+
+
+# Create all possible combinations using expand.grid
+
+U22.b<-expand.grid(Units, days)
+
+U22.b[ , 'red'] <- NA
+U22.b[ , 'green'] <- NA
+U22.b[ , 'blue'] <- NA
+U22.b[ , 'NIR'] <- NA
+U22.b[ , 'RedEdge'] <- NA
+
+
+U22.b$red<-ifelse(U22.b$Var2==106, U22$Canopy.Reflectance...Red...reflectance.ratio.day.106.COMP.0000825, ifelse(
+  U22.b$Var2 == 122,
+  U22$Canopy.Reflectance...Red...reflectance.ratio.day.122.COMP.0000843,
+  ifelse(
+    U22.b$Var2 == 127,
+    U22$Canopy.Reflectance...Red...reflectance.ratio.day.127.COMP.0000848,
+    ifelse(
+      U22.b$Var2 == 133,
+      U22$Canopy.Reflectance...Red...reflectance.ratio.day.133.COMP.0000855,
+      ifelse(
+        U22.b$Var2 == 139,
+        U22$Canopy.Reflectance...Red...reflectance.ratio.day.139.COMP.0000861,
+        ifelse(
+          U22.b$Var2 == 143,
+          U22$Canopy.Reflectance...Red...reflectance.ratio.day.143.COMP.0000866,
+          ifelse(
+            U22.b$Var2 == 148,
+            U22$Canopy.Reflectance...Red...reflectance.ratio.day.148.COMP.0000871,
+            ifelse(
+              U22.b$Var2 == 154,
+              U22$Canopy.Reflectance...Red...reflectance.ratio.day.154.COMP.0000878, ifelse(
+                U22.b$Var2 == 160,
+                U22$Canopy.Reflectance...Red...reflectance.ratio.day.160.COMP.0000885,
+                ifelse(
+                U22.b$Var2 == 166,  
+                U22$Canopy.Reflectance...Red...reflectance.ratio.day.166.COMP.0000891, NA
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)))
+
+
+
+U22.b$blue<-ifelse(U22.b$Var2==106, U22$Canopy.Reflectance...Blue...reflectance.ratio.day.106.COMP.0000083, ifelse(
+  U22.b$Var2 == 122,
+  U22$Canopy.Reflectance...Blue...reflectance.ratio.day.122.COMP.0000002,
+  ifelse(
+    U22.b$Var2 == 127,
+    U22$Canopy.Reflectance...Blue...reflectance.ratio.day.127.COMP.0000105,
+    ifelse(
+      U22.b$Var2 == 133,
+      U22$Canopy.Reflectance...Blue...reflectance.ratio.day.133.COMP.0000112,
+      ifelse(
+        U22.b$Var2 == 139,
+        U22$Canopy.Reflectance...Blue...reflectance.ratio.day.139.COMP.0000118,
+        ifelse(
+          U22.b$Var2 == 143,
+          U22$Canopy.Reflectance...Blue...reflectance.ratio.day.143.COMP.0000123,
+          ifelse(
+            U22.b$Var2 == 148,
+            U22$Canopy.Reflectance...Blue...reflectance.ratio.day.148.COMP.0000128,
+            ifelse(
+              U22.b$Var2 == 154,
+              U22$Canopy.Reflectance...Blue...reflectance.ratio.day.154.COMP.0000135, ifelse(
+                U22.b$Var2 == 160,
+                U22$Canopy.Reflectance...Blue...reflectance.ratio.day.160.COMP.0000142,
+                ifelse(
+                  U22.b$Var2 == 166,
+                U22$Canopy.Reflectance...Blue...reflectance.ratio.day.166.COMP.0000148, NA
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)))
+
+U22.b$green<-ifelse(U22.b$Var2==106, U22$Canopy.Reflectance...Green...reflectance.ratio.day.106.COMP.0000451, ifelse(
+  U22.b$Var2 == 122,
+  U22$Canopy.Reflectance...Green...reflectance.ratio.day.122.COMP.0000469,
+  ifelse(
+    U22.b$Var2 == 127,
+    U22$Canopy.Reflectance...Green...reflectance.ratio.day.127.COMP.0000474,
+    ifelse(
+      U22.b$Var2 == 133,
+      U22$Canopy.Reflectance...Green...reflectance.ratio.day.133.COMP.0000481,
+      ifelse(
+        U22.b$Var2 == 139,
+        U22$Canopy.Reflectance...Green...reflectance.ratio.day.139.COMP.0000487,
+        ifelse(
+          U22.b$Var2 == 143,
+          U22$Canopy.Reflectance...Green...reflectance.ratio.day.143.COMP.0000492,
+          ifelse(
+            U22.b$Var2 == 148,
+            U22$Canopy.Reflectance...Green...reflectance.ratio.day.148.COMP.0000497,
+            ifelse(
+              U22.b$Var2 == 154,
+              U22$Canopy.Reflectance...Green...reflectance.ratio.day.154.COMP.0000504, ifelse(
+                U22.b$Var2 == 160,
+                U22$Canopy.Reflectance...Green...reflectance.ratio.day.160.COMP.0000511,
+                ifelse(
+                  U22.b$Var2 == 166,
+                U22$Canopy.Reflectance...Green...reflectance.ratio.day.166.COMP.0000517, NA
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)))
+
+
+U22.b$RedEdge<-ifelse(U22.b$Var2==106, U22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.106.COMP.0001012, ifelse(
+  U22.b$Var2 == 122,
+  U22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.122.COMP.0001030,
+  ifelse(
+    U22.b$Var2 == 127,
+    U22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.127.COMP.0001035,
+    ifelse(
+      U22.b$Var2 == 133,
+      U22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.133.COMP.0001042,
+      ifelse(
+        U22.b$Var2 == 139,
+        U22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.139.COMP.0001048,
+        ifelse(
+          U22.b$Var2 == 143,
+          U22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.143.COMP.0001053,
+          ifelse(
+            U22.b$Var2 == 148,
+            U22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.148.COMP.0001058,
+            ifelse(
+              U22.b$Var2 == 154,
+              U22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.154.COMP.0001065, ifelse(
+                U22.b$Var2 == 160,
+                U22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.160.COMP.0001072,
+                ifelse(
+                   U22.b$Var2 == 166,
+                U22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.166.COMP.0001078, NA
+              )
+            )
+          ))
+        )
+      )
+    )
+  )
+))
+
+U22.b$NIR<-ifelse(U22.b$Var2==106, U22$Canopy.Reflectance...NIR...reflectance.ratio.day.106.COMP.0000638, ifelse(
+  U22.b$Var2 == 122,
+  U22$Canopy.Reflectance...NIR...reflectance.ratio.day.122.COMP.0000656,
+  ifelse(
+    U22.b$Var2 == 127,
+    U22$Canopy.Reflectance...NIR...reflectance.ratio.day.127.COMP.0000661,
+    ifelse(
+      U22.b$Var2 == 133,
+      U22$Canopy.Reflectance...NIR...reflectance.ratio.day.133.COMP.0000668,
+      ifelse(
+        U22.b$Var2 == 139,
+        U22$Canopy.Reflectance...NIR...reflectance.ratio.day.139.COMP.0000674,
+        ifelse(
+          U22.b$Var2 == 143,
+          U22$Canopy.Reflectance...NIR...reflectance.ratio.day.143.COMP.0000679,
+          ifelse(
+            U22.b$Var2 == 148,
+            U22$Canopy.Reflectance...NIR...reflectance.ratio.day.148.COMP.0000684,
+            ifelse(
+              U22.b$Var2 == 154,
+              U22$Canopy.Reflectance...NIR...reflectance.ratio.day.154.COMP.0000691, ifelse(
+                U22.b$Var2 == 160,
+                U22$Canopy.Reflectance...NIR...reflectance.ratio.day.160.COMP.0000698, ifelse( U22.b$Var2 == 166,
+                U22$Canopy.Reflectance...NIR...reflectance.ratio.day.166.COMP.0000704, NA
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)))
+
+```
+
+```{r U23 prepare bands}
+U23.b<-NULL
+
+U23.b$Unit<-U23$observationUnitDbId
+
+U23.b<-as.data.frame(U23.b)
+
+#I am going to add some columns to make give a addecuated format to the database. 
+# Define the days and Units
+days <- Urb23_allflights$julian
+Units<-as.vector(U23.b$Unit)
+
+
+# Create all possible combinations using expand.grid
+
+U23.b<-expand.grid(Units, days)
+
+U23.b[ , 'red'] <- NA
+U23.b[ , 'green'] <- NA
+U23.b[ , 'blue'] <- NA
+U23.b[ , 'NIR'] <- NA
+U23.b[ , 'RedEdge'] <- NA
+
+
+U23.b$red<-ifelse(U23.b$Var2==61, U23$Canopy.Reflectance...Red...reflectance.ratio.day.61.COMP.0000962, 
+  ifelse(U23.b$Var2 == 97,
+  U23$Canopy.Reflectance...Red...reflectance.ratio.day.97.COMP.0001001,
+  ifelse(
+    U23.b$Var2 == 102,
+    U23$Canopy.Reflectance...Red...reflectance.ratio.day.102.COMP.0000821,
+    ifelse(
+      U23.b$Var2 == 116,
+      U23$Canopy.Reflectance...Red...reflectance.ratio.day.116.COMP.0000836,
+      ifelse(
+        U23.b$Var2 == 124,
+        U23$Canopy.Reflectance...Red...reflectance.ratio.day.124.COMP.0000845,
+        ifelse(
+          U23.b$Var2 == 130,
+          U23$Canopy.Reflectance...Red...reflectance.ratio.day.130.COMP.0000852,
+          ifelse(
+            U23.b$Var2 == 138,
+            U23$Canopy.Reflectance...Red...reflectance.ratio.day.138.COMP.0000860,
+            ifelse(
+              U23.b$Var2 == 150,
+              U23$Canopy.Reflectance...Red...reflectance.ratio.day.150.COMP.0000874, 
+              ifelse(
+                U23.b$Var2 == 159,
+                U23$Canopy.Reflectance...Red...reflectance.ratio.day.159.COMP.0000883,
+                ifelse(
+                  U23.b$Var2 == 165,
+                U23$Canopy.Reflectance...Red...reflectance.ratio.day.165.COMP.0000890, NA
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)))
+
+
+U23.b$blue<-ifelse(U23.b$Var2==61, U23$Canopy.Reflectance...Blue...reflectance.ratio.day.61.COMP.0000219, 
+        ifelse(U23.b$Var2 == 97,
+          U23$Canopy.Reflectance...Blue...reflectance.ratio.day.97.COMP.0000258,
+          ifelse(
+           U23.b$Var2 == 102,
+            U23$Canopy.Reflectance...Blue...reflectance.ratio.day.102.COMP.0000079,
+            ifelse(
+              U23.b$Var2 == 116,                        U23$Canopy.Reflectance...Blue...reflectance.ratio.day.116.COMP.0000094,
+                             ifelse(
+                               U23.b$Var2 == 124,
+                               U23$Canopy.Reflectance...Blue...reflectance.ratio.day.124.COMP.0000102,
+                               ifelse(
+                                 U23.b$Var2 == 130,
+                                 U23$Canopy.Reflectance...Blue...reflectance.ratio.day.130.COMP.0000109,
+                                 ifelse(
+                                   U23.b$Var2 == 138,
+                                   U23$Canopy.Reflectance...Blue...reflectance.ratio.day.138.COMP.0000117,
+                                   ifelse(
+                                     U23.b$Var2 == 150,
+                                     U23$Canopy.Reflectance...Blue...reflectance.ratio.day.150.COMP.0000131, 
+                                     ifelse(
+                                       U23.b$Var2 == 159,
+                                       U23$Canopy.Reflectance...Blue...reflectance.ratio.day.159.COMP.0000140,
+                                       ifelse(
+                                      U23.b$Var2 == 165, U23$Canopy.Reflectance...Blue...reflectance.ratio.day.165.COMP.0000147, NA
+                                     )
+                                   )
+                                 )
+                               )
+                             )
+                           )
+                         )
+                  )))
+
+
+U23.b$green<-ifelse(U23.b$Var2==61, U23$Canopy.Reflectance...Green...reflectance.ratio.day.61.COMP.0000588, 
+                   ifelse(U23.b$Var2 == 97,
+                          U23$Canopy.Reflectance...Green...reflectance.ratio.day.97.COMP.0000627,
+                          ifelse(
+                            U23.b$Var2 == 102,
+                            U23$Canopy.Reflectance...Green...reflectance.ratio.day.102.COMP.0000447,
+                            ifelse(
+                              U23.b$Var2 == 116,
+                              U23$Canopy.Reflectance...Green...reflectance.ratio.day.116.COMP.0000462,
+                              ifelse(
+                                U23.b$Var2 == 124,
+                                U23$Canopy.Reflectance...Green...reflectance.ratio.day.124.COMP.0000471,
+                                ifelse(
+                                  U23.b$Var2 == 130,
+                                  U23$Canopy.Reflectance...Green...reflectance.ratio.day.130.COMP.0000478,
+                                  ifelse(
+                                    U23.b$Var2 == 138,                                   U23$Canopy.Reflectance...Green...reflectance.ratio.day.138.COMP.0000486,
+                                    ifelse(
+                                      U23.b$Var2 == 150,
+                                      U23$Canopy.Reflectance...Green...reflectance.ratio.day.150.COMP.0000500, 
+                                      ifelse(
+                                        U23.b$Var2 == 159,
+                                        U23$Canopy.Reflectance...Green...reflectance.ratio.day.159.COMP.0000509,
+                                          ifelse(
+                                      U23.b$Var2 == 165,
+                                        U23$Canopy.Reflectance...Green...reflectance.ratio.day.165.COMP.0000516, NA
+                                      )
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                          )
+                   )))
+
+
+U23.b$RedEdge<-ifelse(U23.b$Var2==61, U23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.61.COMP.0001149, 
+                    ifelse(U23.b$Var2 == 97,
+                           U23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.97.COMP.0001188,
+                           ifelse(
+                             U23.b$Var2 == 102,
+                             U23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.102.COMP.0001008,
+                             ifelse(
+                               U23.b$Var2 == 116,
+                               U23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.116.COMP.0001023,
+                               ifelse(
+                                 U23.b$Var2 == 124,
+                                 U23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.124.COMP.0001032,
+                                 ifelse(
+                                   U23.b$Var2 == 130,
+                                   U23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.130.COMP.0001039,
+                                   ifelse(
+                                     U23.b$Var2 == 138,
+                                     U23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.138.COMP.0001047,
+                                     ifelse(
+                                       U23.b$Var2 == 150,
+                                       U23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.150.COMP.0001061, 
+                                       ifelse(
+                                         U23.b$Var2 == 159,
+                                         U23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.159.COMP.0001070,
+                                         ifelse(
+                                           U23.b$Var2 == 165,
+                                         U23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.165.COMP.0001077, NA
+                                       )
+                                     )
+                                   )
+                                 )
+                               )
+                             )
+                           )
+                    )))
+
+
+U23.b$NIR<-ifelse(U23.b$Var2==61, U23$Canopy.Reflectance...NIR...reflectance.ratio.day.61.COMP.0000775, ifelse(
+  U23.b$Var2 == 97,
+  U23$Canopy.Reflectance...NIR...reflectance.ratio.day.97.COMP.0000814,
+  ifelse(
+    U23.b$Var2 == 102,
+    U23$Canopy.Reflectance...NIR...reflectance.ratio.day.102.COMP.0000634,
+    ifelse(
+      U23.b$Var2 == 116,
+      U23$Canopy.Reflectance...NIR...reflectance.ratio.day.116.COMP.0000649,
+      ifelse(
+        U23.b$Var2 == 124,
+        U23$Canopy.Reflectance...NIR...reflectance.ratio.day.124.COMP.0000658,
+        ifelse(
+          U23.b$Var2 == 130,
+          U23$Canopy.Reflectance...NIR...reflectance.ratio.day.130.COMP.0000665,
+          ifelse(
+            U23.b$Var2 == 138,
+            U23$Canopy.Reflectance...NIR...reflectance.ratio.day.138.COMP.0000673,
+            ifelse(
+              U23.b$Var2 == 150,
+              U23$Canopy.Reflectance...NIR...reflectance.ratio.day.150.COMP.0000687, ifelse(
+                U23.b$Var2 == 159,
+                U23$Canopy.Reflectance...NIR...reflectance.ratio.day.159.COMP.0000696,
+                ifelse(
+                  U23.b$Var2 == 165,
+                U23$Canopy.Reflectance...NIR...reflectance.ratio.day.165.COMP.0000703, NA
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)))
+
+```
+
+
+```{r S22 prepare bands}
+
+StP22.b<-NULL
+
+StP22.b$Unit<-StP22$observationUnitDbId
+
+StP22.b<-as.data.frame(StP22.b)
+
+#I am going to add some columns to make give a addecuated format to the database. 
+# Define the days and Units
+days <- StP22_allflights$julian
+Units<-as.vector(StP22.b$Unit)
+
+
+# Create all possible combinations using expand.grid
+
+StP22.b<-expand.grid(Units, days)
+
+StP22.b[ , 'red'] <- NA
+StP22.b[ , 'green'] <- NA
+StP22.b[ , 'blue'] <- NA
+StP22.b[ , 'NIR'] <- NA
+StP22.b[ , 'RedEdge'] <- NA
+
+
+StP22.b$red<-ifelse(StP22.b$Var2==104, StP22$Canopy.Reflectance...Red...reflectance.ratio.day.104.COMP.0000823, 
+                    ifelse(StP22.b$Var2 ==117,
+                           StP22$Canopy.Reflectance...Red...reflectance.ratio.day.117.COMP.0000837,
+                           ifelse(
+                             StP22.b$Var2 == 124,
+                             StP22$Canopy.Reflectance...Red...reflectance.ratio.day.124.COMP.0000845,
+                           ifelse(
+                             StP22.b$Var2 == 130,
+                             StP22$Canopy.Reflectance...Red...reflectance.ratio.day.130.COMP.0000852,
+                             ifelse(
+                               StP22.b$Var2 == 132,
+                               StP22$Canopy.Reflectance...Red...reflectance.ratio.day.132.COMP.0000854,
+                               ifelse(
+                                 StP22.b$Var2 == 137,
+                                 StP22$Canopy.Reflectance...Red...reflectance.ratio.day.137.COMP.0000859,
+                                 ifelse(
+                                   StP22.b$Var2 == 151,
+                                   StP22$Canopy.Reflectance...Red...reflectance.ratio.day.151.COMP.0000875,
+                                   ifelse(
+                                     StP22.b$Var2 == 165,
+                                     StP22$Canopy.Reflectance...Red...reflectance.ratio.day.165.COMP.0000890, NA
+                                   )
+                                 )
+                               )
+                             )
+                           )
+                    )
+))
+
+
+StP22.b$blue<-ifelse(StP22.b$Var2==104, StP22$Canopy.Reflectance...Blue...reflectance.ratio.day.104.COMP.0000081, 
+        ifelse(StP22.b$Var2 ==117,
+              StP22$Canopy.Reflectance...Blue...reflectance.ratio.day.117.COMP.0000095,
+                           ifelse(
+                             StP22.b$Var2 == 124,
+                             StP22$Canopy.Reflectance...Blue...reflectance.ratio.day.124.COMP.0000102,
+                             ifelse(
+                               StP22.b$Var2 == 130,
+                               StP22$Canopy.Reflectance...Blue...reflectance.ratio.day.130.COMP.0000109,
+                             ifelse(
+                               StP22.b$Var2 == 132,
+                               StP22$Canopy.Reflectance...Blue...reflectance.ratio.day.132.COMP.0000111,
+                               ifelse(
+                                 StP22.b$Var2 == 137,
+                                 StP22$Canopy.Reflectance...Blue...reflectance.ratio.day.137.COMP.0000116,
+                                 ifelse(
+                                   StP22.b$Var2 == 151,
+                                   StP22$Canopy.Reflectance...Blue...reflectance.ratio.day.151.COMP.0000132,
+                                   ifelse(
+                                     StP22.b$Var2 == 165,
+                                     StP22$Canopy.Reflectance...Blue...reflectance.ratio.day.165.COMP.0000147,  NA
+                                       )
+                                     )
+                                   )
+                                 )
+                               )
+                             )
+                           )
+                    )
+
+
+
+StP22.b$green<-ifelse(StP22.b$Var2==104, StP22$Canopy.Reflectance...Green...reflectance.ratio.day.104.COMP.0000449, 
+                     ifelse(StP22.b$Var2 ==117,
+                            StP22$Canopy.Reflectance...Green...reflectance.ratio.day.117.COMP.0000463,
+                            ifelse(
+                              StP22.b$Var2 == 124,
+                              StP22$Canopy.Reflectance...Green...reflectance.ratio.day.124.COMP.0000471,
+                              ifelse(
+                                StP22.b$Var2 == 130,
+                                StP22$Canopy.Reflectance...Green...reflectance.ratio.day.130.COMP.0000478,
+                                ifelse(
+                                  StP22.b$Var2 == 132,
+                                  StP22$Canopy.Reflectance...Green...reflectance.ratio.day.132.COMP.0000480,
+                                  ifelse(
+                                    StP22.b$Var2 == 137,
+                                    StP22$Canopy.Reflectance...Green...reflectance.ratio.day.137.COMP.0000485,
+                                    ifelse(
+                                      StP22.b$Var2 == 151,
+                                      StP22$Canopy.Reflectance...Green...reflectance.ratio.day.151.COMP.0000501, ifelse(
+                                        StP22.b$Var2 == 165,
+                                        StP22$Canopy.Reflectance...Green...reflectance.ratio.day.165.COMP.0000516, NA
+                                        )
+                                      )
+                                    )
+                                  )
+                                )
+                              )
+                            ))
+
+
+StP22.b$RedEdge<-ifelse(StP22.b$Var2==104, StP22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.104.COMP.0001010, 
+                      ifelse(StP22.b$Var2 ==117,
+                             StP22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.117.COMP.0001024,
+                             ifelse(
+                               StP22.b$Var2 == 124,
+                               StP22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.124.COMP.0001032,
+                               ifelse(
+                                 StP22.b$Var2 == 130,
+                                 StP22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.130.COMP.0001039,
+                                 ifelse(
+                                   StP22.b$Var2 == 132,
+                                   StP22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.132.COMP.0001041,
+                                   ifelse(
+                                     StP22.b$Var2 == 137,
+                                     StP22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.137.COMP.0001046,
+                                     ifelse(
+                                       StP22.b$Var2 == 151,
+                                       StP22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.151.COMP.0001062, ifelse(
+                                         StP22.b$Var2 == 165,
+                                         StP22$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.165.COMP.0001077,  NA
+                                           )
+                                         )
+                                       )
+                                     )
+                                   )
+                                 )
+                               )
+                             )
+
+StP22.b$NIR<-ifelse(StP22.b$Var2==104, StP22$Canopy.Reflectance...NIR...reflectance.ratio.day.104.COMP.0000636, 
+                        ifelse(StP22.b$Var2 ==117,
+                               StP22$Canopy.Reflectance...NIR...reflectance.ratio.day.117.COMP.0000650,
+                               ifelse(
+                                 StP22.b$Var2 == 124,
+                                 StP22$Canopy.Reflectance...NIR...reflectance.ratio.day.124.COMP.0000658,
+                                 ifelse(
+                                   StP22.b$Var2 == 130,
+                                   StP22$Canopy.Reflectance...NIR...reflectance.ratio.day.130.COMP.0000665,
+                                   ifelse(
+                                     StP22.b$Var2 == 132,
+                                     StP22$Canopy.Reflectance...NIR...reflectance.ratio.day.132.COMP.0000667,
+                                     ifelse(
+                                       StP22.b$Var2 == 137,
+                                       StP22$Canopy.Reflectance...NIR...reflectance.ratio.day.137.COMP.0000672,
+                                       ifelse(
+                                         StP22.b$Var2 == 151,
+                                         StP22$Canopy.Reflectance...NIR...reflectance.ratio.day.151.COMP.0000688, ifelse(
+                                           StP22.b$Var2 == 165,
+                                           StP22$Canopy.Reflectance...NIR...reflectance.ratio.day.165.COMP.0000703, NA
+                                             )
+                                           )
+                                         )
+                                       )
+                                     )
+                                   )
+                                 )
+                               )
+
+```
+
+```{r}
+
+StP23.b<-NULL
+
+StP23.b$Unit<-StP23$observationUnitDbId
+
+StP23.b<-as.data.frame(StP23.b)
+
+#I am going to add some columns to make give a addecuated format to the database. 
+# Define the days and Units
+days <- StP23_allflights$julian
+Units<-as.vector(StP23.b$Unit)
+
+
+# Create all possible combinations using expand.grid
+
+StP23.b<-expand.grid(Units, days)
+
+StP23.b[ , 'red'] <- NA
+StP23.b[ , 'green'] <- NA
+StP23.b[ , 'blue'] <- NA
+StP23.b[ , 'NIR'] <- NA
+StP23.b[ , 'RedEdge'] <- NA
+
+
+StP23.b$red<-ifelse(StP23.b$Var2==52, StP23$Canopy.Reflectance...Red...reflectance.ratio.day.52.COMP.0000952, 
+                    ifelse(StP23.b$Var2 ==74,
+                           StP23$Canopy.Reflectance...Red...reflectance.ratio.day.74.COMP.0000976,
+                           ifelse(
+                             StP23.b$Var2 == 96,
+                             StP23$Canopy.Reflectance...Red...reflectance.ratio.day.96.COMP.0001000,
+                           ifelse(
+                             StP23.b$Var2 == 103,
+                             StP23$Canopy.Reflectance...Red...reflectance.ratio.day.103.COMP.0000822,
+                             ifelse(
+                               StP23.b$Var2 == 114,
+                               StP23$Canopy.Reflectance...Red...reflectance.ratio.day.114.COMP.0000834,
+                               ifelse(
+                                 StP23.b$Var2 == 123,
+                                 StP23$Canopy.Reflectance...Red...reflectance.ratio.day.123.COMP.0000844,
+                                 ifelse(
+                                   StP23.b$Var2 == 129,
+                                   StP23$Canopy.Reflectance...Red...reflectance.ratio.day.129.COMP.0000850,
+                                   ifelse(
+                                     StP23.b$Var2 == 137,
+                                     StP23$Canopy.Reflectance...Red...reflectance.ratio.day.137.COMP.0000859, ifelse(
+                                       StP23.b$Var2 == 152,
+                                       StP23$Canopy.Reflectance...Red...reflectance.ratio.day.152.COMP.0000876, ifelse(
+                                         StP23.b$Var2 == 156,
+                                         StP23$Canopy.Reflectance...Red...reflectance.ratio.day.156.COMP.0000880, 
+                                         ifelse(
+                                         StP23.b$Var2 == 164,
+                                           StP23$Canopy.Reflectance...Red...reflectance.ratio.day.164.COMP.0000889, NA
+                                   )
+                                 )
+                               )
+                             )
+                           )
+                    )
+))
+)))
+
+
+
+StP23.b$blue<-ifelse(StP23.b$Var2==52, StP23$Canopy.Reflectance...Blue...reflectance.ratio.day.52.COMP.0000209, 
+        ifelse(StP23.b$Var2 ==74,
+                        StP23$Canopy.Reflectance...Blue...reflectance.ratio.day.74.COMP.0000233,
+                           ifelse(
+                             StP23.b$Var2 == 96,
+                             StP23$Canopy.Reflectance...Blue...reflectance.ratio.day.96.COMP.0000257,
+                             ifelse(
+                               StP23.b$Var2 == 103,
+                               StP23$Canopy.Reflectance...Blue...reflectance.ratio.day.103.COMP.0000080,
+                             ifelse(
+                               StP23.b$Var2 == 114,
+                               StP23$Canopy.Reflectance...Blue...reflectance.ratio.day.114.COMP.0000092,
+                               ifelse(
+                                 StP23.b$Var2 == 123,
+                                 StP23$Canopy.Reflectance...Blue...reflectance.ratio.day.123.COMP.0000101,
+                                 ifelse(
+                                   StP23.b$Var2 == 129,
+                                   StP23$Canopy.Reflectance...Blue...reflectance.ratio.day.129.COMP.0000107,
+                                   ifelse(
+                                     StP23.b$Var2 == 137,
+                                     StP23$Canopy.Reflectance...Blue...reflectance.ratio.day.137.COMP.0000116, ifelse(
+                                       StP23.b$Var2 == 152,
+                                       StP23$Canopy.Reflectance...Blue...reflectance.ratio.day.152.COMP.0000133, ifelse(
+                                         StP23.b$Var2 == 156,
+                                         StP23$Canopy.Reflectance...Blue...reflectance.ratio.day.156.COMP.0000137, 
+                                         ifelse(
+                                         StP23.b$Var2 == 164,
+                                         StP23$Canopy.Reflectance...Blue...reflectance.ratio.day.164.COMP.0000146, NA
+                                       )
+                                     )
+                                   )
+                                 )
+                               )
+                             )
+                           )
+                    ))))
+
+
+
+StP23.b$green<-ifelse(StP23.b$Var2==52, StP23$Canopy.Reflectance...Green...reflectance.ratio.day.52.COMP.0000578, 
+                     ifelse(StP23.b$Var2 ==74,
+                            StP23$Canopy.Reflectance...Green...reflectance.ratio.day.74.COMP.0000602,
+                            ifelse(
+                              StP23.b$Var2 == 96,
+                              StP23$Canopy.Reflectance...Green...reflectance.ratio.day.96.COMP.0000626,
+                              ifelse(
+                                StP23.b$Var2 == 103,
+                                StP23$Canopy.Reflectance...Green...reflectance.ratio.day.103.COMP.0000448,
+                                ifelse(
+                                  StP23.b$Var2 == 114,
+                                  StP23$Canopy.Reflectance...Green...reflectance.ratio.day.114.COMP.0000460,
+                                  ifelse(
+                                    StP23.b$Var2 == 123,
+                                    StP23$Canopy.Reflectance...Green...reflectance.ratio.day.123.COMP.0000470,
+                                    ifelse(
+                                      StP23.b$Var2 == 129,
+                                      StP23$Canopy.Reflectance...Green...reflectance.ratio.day.129.COMP.0000476, ifelse(
+                                        StP23.b$Var2 == 137,
+                                        StP23$Canopy.Reflectance...Green...reflectance.ratio.day.137.COMP.0000485, ifelse(
+                                          StP23.b$Var2 == 152,
+                                          StP23$Canopy.Reflectance...Green...reflectance.ratio.day.152.COMP.0000502,ifelse(
+                                            StP23.b$Var2 == 156,
+                                            StP23$Canopy.Reflectance...Green...reflectance.ratio.day.156.COMP.0000506, ifelse(
+                                            StP23.b$Var2 == 164, 
+                                          StP23$Canopy.Reflectance...Green...reflectance.ratio.day.164.COMP.0000515, NA
+                                        )
+                                      )
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                     ))))
+
+StP23.b$RedEdge<-ifelse(StP23.b$Var2==52, StP23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.52.COMP.0001139, 
+                      ifelse(StP23.b$Var2 ==74,
+                             StP23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.74.COMP.0001163,
+                             ifelse(
+                               StP23.b$Var2 == 96,
+                               StP23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.96.COMP.0001187,
+                               ifelse(
+                                 StP23.b$Var2 == 103,
+                                 StP23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.103.COMP.0001009,
+                                 ifelse(
+                                   StP23.b$Var2 == 114,
+                                   StP23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.114.COMP.0001021,
+                                   ifelse(
+                                     StP23.b$Var2 == 123,
+                                     StP23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.123.COMP.0001031,
+                                     ifelse(
+                                       StP23.b$Var2 == 129,
+                                       StP23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.129.COMP.0001037, ifelse(
+                                         StP23.b$Var2 == 137,
+                                         StP23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.137.COMP.0001046, ifelse(
+                                           StP23.b$Var2 == 152,
+                                           StP23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.152.COMP.0001063, ifelse(
+                                             StP23.b$Var2 == 156,
+                                             StP23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.156.COMP.0001067, 
+                                             StP23$Canopy.Reflectance...Red.Edge...reflectance.ratio.day.164.COMP.0001076
+                                           )
+                                         )
+                                       )
+                                     )
+                                   )
+                                 )
+                               )
+                             )))
+
+StP23.b$NIR<-ifelse(StP23.b$Var2==52, StP23$Canopy.Reflectance...NIR...reflectance.ratio.day.52.COMP.0000765, 
+                        ifelse(StP23.b$Var2 ==74,
+                               StP23$Canopy.Reflectance...NIR...reflectance.ratio.day.74.COMP.0000789,
+                               ifelse(
+                                 StP23.b$Var2 == 96,
+                                 StP23$Canopy.Reflectance...NIR...reflectance.ratio.day.96.COMP.0000813,
+                                 ifelse(
+                                   StP23.b$Var2 == 103,
+                                   StP23$Canopy.Reflectance...NIR...reflectance.ratio.day.103.COMP.0000635,
+                                   ifelse(
+                                     StP23.b$Var2 == 114,
+                                     StP23$Canopy.Reflectance...NIR...reflectance.ratio.day.114.COMP.0000647,
+                                     ifelse(
+                                       StP23.b$Var2 == 123,
+                                       StP23$Canopy.Reflectance...NIR...reflectance.ratio.day.123.COMP.0000657,
+                                       ifelse(
+                                         StP23.b$Var2 == 129,
+                                         StP23$Canopy.Reflectance...NIR...reflectance.ratio.day.129.COMP.0000663, ifelse(
+                                           StP23.b$Var2 == 137,
+                                           StP23$Canopy.Reflectance...NIR...reflectance.ratio.day.137.COMP.0000672, ifelse(
+                                             StP23.b$Var2 == 152,
+                                             StP23$Canopy.Reflectance...NIR...reflectance.ratio.day.152.COMP.0000689,ifelse(
+                                               StP23.b$Var2 == 156,
+                                               StP23$Canopy.Reflectance...NIR...reflectance.ratio.day.156.COMP.0000693, ifelse(
+                                               StP23.b$Var2 == 164,
+                                               StP23$Canopy.Reflectance...NIR...reflectance.ratio.day.164.COMP.0000702, NA
+                                             )
+                                           )
+                                         )
+                                       )
+                                     )
+                                   )
+                                 )
+                               ))))
+
+```
+
+NDVI calculation
+```{r}
+N22.b<-calculate_ndvi(N22.b, nir_col="NIR", red_col="red")
+
+N23.b<-calculate_ndvi(N23.b, nir_col="NIR", red_col="red")
+
+U22.b<-calculate_ndvi(U22.b, nir_col="NIR", red_col="red")
+
+U23.b<-calculate_ndvi(U23.b, nir_col="NIR", red_col="red")
+
+StP22.b<-calculate_ndvi(StP22.b, nir_col="NIR", red_col="red")
+
+StP23.b<-calculate_ndvi(StP23.b, nir_col="NIR", red_col="red")
+
+```
+
+GNDVI calculation
+```{r}
+N22.b<-calculate_gndvi(N22.b, nir_col="NIR", green_col="green")
+
+N23.b<-calculate_gndvi(N23.b, nir_col="NIR", green_col="green")
+
+U22.b<-calculate_gndvi(U22.b, nir_col="NIR", green_col="green")
+
+U23.b<-calculate_gndvi(U23.b, nir_col="NIR", green_col="green")
+
+StP22.b<-calculate_gndvi(StP22.b, nir_col="NIR", green_col="green")
+
+StP23.b<-calculate_gndvi(StP23.b, nir_col="NIR", green_col="green")
+
+```
+
+EVI calculation
+```{r}
+N22.b<-calculate_evi(N22.b, nir_col="NIR", red_col="red", blue_col="blue")
+
+N23.b<-calculate_evi(N23.b, nir_col="NIR", red_col="red", blue_col="blue")
+
+U22.b<-calculate_evi(U22.b, nir_col="NIR", red_col="red", blue_col="blue")
+
+U23.b<-calculate_evi(U23.b, nir_col="NIR", red_col="red", blue_col="blue")
+
+StP22.b<-calculate_evi(StP22.b, nir_col="NIR", red_col="red", blue_col="blue")
+
+StP23.b<-calculate_evi(StP23.b, nir_col="NIR", red_col="red", blue_col="blue")
+```
+
+Save dataframe with the information 
+```{r}
+N22.b<-N22.b %>% rename (Unit = Var1, Days = Var2)
+N23.b<-N23.b %>% rename (Unit = Var1, Days = Var2)
+
+StP22.b<-StP22.b %>% rename (Unit = Var1, Days = Var2)
+StP23.b<-StP23.b %>% rename (Unit = Var1, Days = Var2)
+
+U22.b<-U22.b %>% rename (Unit = Var1, Days = Var2)
+U23.b<-U23.b %>% rename (Unit = Var1, Days = Var2)
+
+write.csv(N22.b, "indexes.bands.N22.csv")
+write.csv(N23.b, "indexes.bands.N23.csv")
+
+write.csv(U22.b, "indexes.bands.U22.csv")
+write.csv(U23.b, "indexes.bands.U23.csv")
+
+write.csv(StP22.b, "indexes.bands.StP22.csv")
+write.csv(StP23.b, "indexes.bands.StP23.csv")
+
+```
+
+```{r}
+# Convert list columns to character
+for (col in names(Neo22_allflights)) {
+  if (is.list(Neo22_allflights[[col]])) {
+    Neo22_allflights[[col]] <- sapply(Neo22_allflights[[col]], function(x) {
+      if (is.null(x)) return(NA)  
+      return(paste(x, collapse = ", "))  
+  })
+}
+}
+
+
+# Convert list columns to character
+for (col in names(Neo23_allflights)) {
+  if (is.list(Neo23_allflights[[col]])) {
+    Neo23_allflights[[col]] <- sapply(Neo23_allflights[[col]], function(x) {
+      if (is.null(x)) return(NA) 
+      return(paste(x, collapse = ", "))  # Convert list to a string
+    })
+  }
+}
+
+# Convert list columns to character
+for (col in names(Urb22_allflights)) {
+  if (is.list(Urb22_allflights[[col]])) {
+    Urb22_allflights[[col]] <- sapply(Urb22_allflights[[col]], function(x) {
+      if (is.null(x)) return(NA)  # Handle NULL values
+      return(paste(x, collapse = ", "))  # Convert list to a string
+    })
+  }
+}
+
+
+# Convert list columns to character
+for (col in names(Urb23_allflights)) {
+  if (is.list(Urb23_allflights[[col]])) {
+    Urb23_allflights[[col]] <- sapply(Urb23_allflights[[col]], function(x) {
+      if (is.null(x)) return(NA)  # Handle NULL values
+      return(paste(x, collapse = ", "))  # Convert list to a string
+    })
+  }
+}
+
+
+# Convert list columns to character
+for (col in names(StP22_allflights)) {
+  if (is.list(StP22_allflights[[col]])) {
+    StP22_allflights[[col]] <- sapply(StP22_allflights[[col]], function(x) {
+      if (is.null(x)) return(NA)  # Handle NULL values
+      return(paste(x, collapse = ", "))  # Convert list to a string
+    })
+  }
+}
+
+
+# Convert list columns to character
+for (col in names(StP23_allflights)) {
+  if (is.list(StP23_allflights[[col]])) {
+    StP23_allflights[[col]] <- sapply(StP23_allflights[[col]], function(x) {
+      if (is.null(x)) return(NA)  # Handle NULL values
+      return(paste(x, collapse = ", "))  # Convert list to a string
+    })
+  }
+}
+
+```
+
+CLean the data. Remove columns 1, 3, 4, 5  and 7
+```{r}
+Urb22_allflights2 <- Urb22_allflights[, -c(1, 3, 4, 5, 7)]
+Urb23_allflights2 <- Urb23_allflights[, -c(1, 3, 4, 5, 7)]
+
+Neo22_allflights2 <- Neo22_allflights[, -c(1, 3, 4, 5, 7)]
+Neo23_allflights2 <- Neo23_allflights[, -c(1, 3, 4, 5, 7)]
+
+StP22_allflights2 <- StP22_allflights[, -c(1, 3, 4, 5, 7)]
+StP23_allflights2 <- StP23_allflights[, -c(1, 3, 4, 5, 7)]
+
+```
+
+```{r}
+#Urbana 2022
+U22.b <- U22.b %>%
+  rename(julian = Days)
+
+U22.b$julian<-as.character(U22.b$julian)
+
+table(U22.b$julian)
+table(Urb22$julian)
+
+Urb22_allflights2 <- Urb22_allflights2 %>% distinct(julian, .keep_all = TRUE)
+
+Urb22 <- merge(U22.b, Urb22_allflights2, by = "julian")
+
+
+#Urbana 2023
+U23.b <- U23.b %>%
+  rename(julian = Days)
+
+U23.b$julian<-as.character(U23.b$julian)
+
+
+Urb23_allflights2 <- Urb23_allflights2 %>% distinct(julian, .keep_all = TRUE)
+
+Urb23 <- merge(U23.b, Urb23_allflights2, by = "julian")
+
+
+#Neoga 2022
+N22.b <- N22.b %>%
+  rename(julian = Days)
+
+N22.b$julian<-as.character(N22.b$julian)
+
+
+Neo22_allflights2 <- Neo22_allflights2 %>% distinct(julian, .keep_all = TRUE)
+
+Neo22 <- merge(N22.b, Neo22_allflights2, by = "julian")
+
+
+#Neoga 2023
+N23.b <- N23.b %>%
+  rename(julian = Days)
+
+N23.b$julian<-as.character(N23.b$julian)
+
+
+Neo23_allflights2 <- Neo23_allflights2 %>% distinct(julian, .keep_all = TRUE)
+
+Neo23 <- merge(N23.b, Neo23_allflights2, by = "julian")
+
+
+#St.Peter 2022
+StP22.b <- StP22.b %>%
+  rename(julian = Days)
+
+StP22.b$julian<-as.character(StP22.b$julian)
+
+
+StP22_allflights2 <- StP22_allflights2 %>% distinct(julian, .keep_all = TRUE)
+
+StP22 <- merge(StP22.b, StP22_allflights2, by = "julian")
+
+
+#Neoga 2023
+StP23.b <- StP23.b %>%
+  rename(julian = Days)
+
+StP23.b$julian<-as.character(StP23.b$julian)
+
+
+StP23_allflights2 <- StP23_allflights2 %>% distinct(julian, .keep_all = TRUE)
+
+StP23 <- merge(StP23.b, StP23_allflights2, by = "julian")
+
+```
+Clean data
+```{r}
+U22.b$gdd <- Urb22$gdd
+U23.b$gdd <- Urb23$gdd
+
+N22.b$gdd <- Neo22$gdd
+N23.b$gdd <- Neo23$gdd
+
+StP22.b$gdd <- StP22$gdd
+StP23.b$gdd <- StP23$gdd
+```
+
+
+ Distance matrix calculation based on neighboring gdd values
+```{r  Distance matrix gdd}
+construct_distance_matrix <- function(gdd_data) {
+  n <- length(gdd_data)
+  distance_matrix <- matrix(0, n, n)
+  for (i in 1:n) {
+    for (j in 1:n) {
+      distance_matrix[i, j] <- abs(gdd_data[i] - gdd_data[j])
+    }
+  }
+  return(distance_matrix)
+}
+
+```
+
+
+```{r}
+library(FNN)
+
+# Custom function to calculate weighted distance
+calculate_weighted_distance <- function(train_data, test_data, gdd_weight = 1, julian_weight = 1) {
+  combined_data <- rbind(train_data[, c("gdd", "julian")], test_data[, c("gdd", "julian")])
+
+  # Calculate distances
+  distances <- as.matrix(dist(combined_data))
+  n_train <- nrow(train_data)
+
+  # Extract only the distances for the test data
+  weighted_distances <- distances[(n_train + 1):nrow(distances), 1:n_train] * 
+                          matrix(c(gdd_weight, julian_weight), nrow = nrow(test_data), ncol = n_train, byrow = TRUE)
+  return(weighted_distances)
+}
+```
+
+NDVI imputation function
+```{r NDVI imputation}
+library(dplyr)
+
+impute_ndvi_best_k <- function(data, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1) {
+  impute_ndvi_weighted <- function(unit_data, k, gdd_weight, julian_weight) {
+    # Filtrar datos completos
+    complete_data <- unit_data[!is.na(unit_data$NDVI), ]
+    
+    # Verificar si hay suficientes datos
+    if (nrow(complete_data) < k) {
+      warning(paste("No hay suficientes datos completos para aplicar KNN en la unidad:", unique(unit_data$Unit)))
+      unit_data$Selected_k <- NA  # Marcar como NA si no se pudo imputar
+      return(unit_data)
+    }
+    
+    # Filtrar datos con NDVI faltante
+    rows_to_impute <- unit_data[is.na(unit_data$NDVI), ]
+    
+    # Verificar si hay datos para imputar
+    if (nrow(rows_to_impute) == 0) {
+      unit_data$Selected_k <- k  # No hay imputación necesaria
+      return(unit_data)
+    }
+    
+    # Calcular distancias ponderadas
+    weighted_distances <- calculate_weighted_distance(complete_data, rows_to_impute, gdd_weight, julian_weight)
+    
+    # Verificar si la matriz de distancias es válida
+    if (nrow(weighted_distances) != nrow(rows_to_impute) || ncol(weighted_distances) != nrow(complete_data)) {
+      stop("Error: Las dimensiones de la matriz de distancias no coinciden con los datos.")
+    }
+    
+    # Aplicar imputación en bloque usando `apply()`
+    imputed_values <- apply(weighted_distances, 1, function(distances) {
+      nearest_indices <- order(distances)[1:min(k, length(distances))]  # Evitar errores por tamaño menor
+      
+      # Calcular pesos inversamente proporcionales a la distancia
+      weights <- 1 / (distances[nearest_indices] + 1e-6)  # Evitar división por cero
+      
+      # Si los pesos suman cero, usar la media de NDVI como fallback
+      if (sum(weights) == 0) {
+        return(mean(complete_data$NDVI, na.rm = TRUE))
+      } else {
+        return(sum(weights * complete_data$NDVI[nearest_indices]) / sum(weights))
+      }
+    })
+    
+    # Asignar valores imputados a las filas originales
+    unit_data$NDVI[is.na(unit_data$NDVI)] <- imputed_values
+    unit_data$Selected_k <- k  # Agregar columna con el k seleccionado
+    
+    return(unit_data)
+  }
+  
+  # Variables para almacenar los mejores resultados
+  best_D <- Inf
+  best_p_value <- -Inf
+  best_k <- NULL
+  best_imputed_data <- NULL
+
+  # Loop sobre diferentes valores de k
+  for (k in k_values) {
+    cat("Probando k =", k, "...\n")
+    
+    # Aplicar la imputación por grupo
+    temp_data <- data %>%
+      group_by(Unit) %>%
+      group_modify(~ impute_ndvi_weighted(.x, k, gdd_weight, julian_weight)) %>%
+      ungroup()
+    
+    # Verificar si se logró imputar algún dato
+    if (all(is.na(temp_data$NDVI))) {
+      warning("Imputación fallida con k =", k)
+      next
+    }
+    
+    # Realizar la prueba KS en el dataset completo
+    observed_ndvi <- data$NDVI[!is.na(data$NDVI)]  # Valores originales no faltantes de NDVI
+    imputed_ndvi <- temp_data$NDVI  # Todos los valores de NDVI después de la imputación
+    
+    ks_test <- ks.test(observed_ndvi, imputed_ndvi)
+    
+    cat("k =", k, "-> D:", ks_test$statistic, ", p-value:", ks_test$p.value, "\n")
+    
+    # Mantener el mejor k basado en la prueba KS (menor D, mayor p-value)
+    if (ks_test$statistic < best_D || (ks_test$statistic == best_D && ks_test$p.value > best_p_value)) {
+      best_D <- ks_test$statistic
+      best_p_value <- ks_test$p.value
+      best_k <- k
+      best_imputed_data <- temp_data
+    }
+  }
+  
+  # Si no se encontró un k adecuado
+  if (is.null(best_imputed_data)) {
+    stop("No se pudo seleccionar un k adecuado para la imputación.")
+  }
+  
+  # Asignar el mejor k a todas las filas
+  best_imputed_data$Final_Selected_k <- best_k
+  best_imputed_data$KS_D <- best_D
+  best_imputed_data$KS_p_value <- best_p_value
+  
+  # Imprimir la selección final
+  cat("Mejor k seleccionado:", best_k, "\n")
+  cat("KS Test final - D:", best_D, ", p-value:", best_p_value, "\n")
+  
+  return(best_imputed_data)
+}
+```
+
+NDVI imputation
+```{r NDVI}
+#StP23
+StP23.2$gdd<-as.numeric(StP23.2$gdd)
+StP23.2<-StP23.2 %>% arrange(gdd, .by_group = TRUE)
+
+StP23.3 <-  StP23.2 %>%
+  group_by(Unit) %>%
+  mutate(flight_number = row_number()) %>%
+  ungroup()
+
+# Reshape the DataFrame
+StP23_NDVI <- StP23.3[, c("Unit", "flight_number", "gdd", "julian", "NDVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+StP23_NDVI_final <- impute_ndvi_best_k(StP23_NDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+
+
+#StP22
+StP22.2$gdd<-as.numeric(StP22.2$gdd)
+StP22.2<-StP22.2 %>% arrange(gdd, .by_group = TRUE)
+
+StP22.3 <-  StP22.2 %>%
+  group_by(Unit) %>%
+  mutate(flight_number = row_number()) %>%
+  ungroup()
+
+
+# Reshape the DataFrame
+StP22_NDVI <- StP22.3[, c("Unit", "flight_number", "gdd", "julian", "NDVI", "temps5.26_mean", "cuml5.26")]
+
+
+# Apply the imputation function to each Unit group
+StP22_NDVI_final <- impute_ndvi_best_k(StP22_NDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+
+#Neo22
+Neo22.2$gdd<-as.numeric(Neo22.2$gdd)
+Neo22.2<-Neo22.2 %>% arrange(gdd, .by_group = TRUE)
+
+Neo22.3 <-  Neo22.2 %>%
+  group_by(Unit) %>%
+  mutate(flight_number = row_number()) %>%
+  ungroup()
+
+
+# Reshape the DataFrame
+Neo22_NDVI <- Neo22.3[, c("Unit", "flight_number", "gdd", "julian", "NDVI", "temps5.26_mean", "cuml5.26")]
+
+
+# Apply the imputation function to each Unit group
+Neo22_NDVI_final <- impute_ndvi_best_k(Neo22_NDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+
+#Neo 23
+Neo23.2$gdd<-as.numeric(Neo23.2$gdd)
+Neo23.2<-Neo23.2 %>% arrange(gdd, .by_group = TRUE)
+
+Neo23.3 <-  Neo23.2 %>%
+  group_by(Unit) %>%
+  mutate(flight_number = row_number()) %>%
+  ungroup()
+
+# Reshape the DataFrame
+Neo23_NDVI <- Neo23.3[, c("Unit", "flight_number", "gdd", "julian", "NDVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+Neo23_NDVI_final <- impute_ndvi_best_k(Neo23_NDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+#Urb 22
+Urb22.2$gdd<-as.numeric(Urb22.2$gdd)
+Urb22.2<-Urb22.2 %>% arrange(gdd, .by_group = TRUE)
+
+Urb22.3 <-  Urb22.2 %>%
+  group_by(Unit) %>%
+  mutate(flight_number = row_number()) %>%
+  ungroup()
+
+
+# Reshape the DataFrame
+Urb22_NDVI <- Urb22.3[, c("Unit", "flight_number", "gdd", "julian", "NDVI", "temps5.26_mean", "cuml5.26")]
+
+
+# Apply the imputation function to each Unit group
+Urb22_NDVI_final <- impute_ndvi_best_k(Urb22_NDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+#Urb23
+Urb23.2$gdd<-as.numeric(Urb23.2$gdd)
+Urb23.2<-Urb23.2 %>% arrange(gdd, .by_group = TRUE)
+
+
+
+Urb23.3 <-  Urb23.2 %>%
+  group_by(Unit) %>%
+  mutate(flight_number = row_number()) %>%
+  ungroup()
+
+
+# Reshape the DataFrame
+Urb23_NDVI <- Urb23.3[, c("Unit", "flight_number", "gdd", "julian", "NDVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+Urb23_NDVI_final <- impute_ndvi_best_k(Urb23_NDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+```
+
+GNDVI imputation function
+```{r GNDVI imputation}
+impute_GNDVI_best_k <- function(data, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1) {
+  
+  impute_GNDVI_weighted <- function(unit_data, k, gdd_weight, julian_weight) {
+    # Filtrar datos completos
+    complete_data <- unit_data[!is.na(unit_data$GNDVI), ]
+    
+    # Verificar si hay suficientes datos
+    if (nrow(complete_data) < k) {
+      warning(paste("No hay suficientes datos completos para aplicar KNN en la unidad:", unique(unit_data$Unit)))
+      unit_data$Selected_k <- NA  # Marcar como NA si no se pudo imputar
+      return(unit_data)
+    }
+    
+    # Filtrar datos con GNDVI faltante
+    rows_to_impute <- unit_data[is.na(unit_data$GNDVI), ]
+    
+    # Verificar si hay datos para imputar
+    if (nrow(rows_to_impute) == 0) {
+      unit_data$Selected_k <- k  # No hay imputación necesaria
+      return(unit_data)
+    }
+    
+    # Calcular distancias ponderadas
+    weighted_distances <- calculate_weighted_distance(complete_data, rows_to_impute, gdd_weight, julian_weight)
+    
+    # Verificar si la matriz de distancias es válida
+    if (nrow(weighted_distances) != nrow(rows_to_impute) || ncol(weighted_distances) != nrow(complete_data)) {
+      stop("Error: Las dimensiones de la matriz de distancias no coinciden con los datos.")
+    }
+    
+    # Aplicar imputación en bloque usando `apply()`
+    imputed_values <- apply(weighted_distances, 1, function(distances) {
+      nearest_indices <- order(distances)[1:min(k, length(distances))]  # Evitar errores por tamaño menor
+      
+      # Calcular pesos inversamente proporcionales a la distancia
+      weights <- 1 / (distances[nearest_indices] + 1e-6)  # Evitar división por cero
+      
+      # Si los pesos suman cero, usar la media de GNDVI como fallback
+      if (sum(weights) == 0) {
+        return(mean(complete_data$GNDVI, na.rm = TRUE))
+      } else {
+        return(sum(weights * complete_data$GNDVI[nearest_indices]) / sum(weights))
+      }
+    })
+    
+    # Asignar valores imputados a las filas originales
+    unit_data$GNDVI[is.na(unit_data$GNDVI)] <- imputed_values
+    unit_data$Selected_k <- k  # Agregar columna con el k seleccionado
+    
+    return(unit_data)
+  }
+  
+  # Variables para almacenar los mejores resultados
+  best_D <- Inf
+  best_p_value <- -Inf
+  best_k <- NULL
+  best_imputed_data <- NULL
+
+  # Loop sobre diferentes valores de k
+  for (k in k_values) {
+    cat("Probando k =", k, "...\n")
+    
+    # Aplicar la imputación por grupo
+    temp_data <- data %>%
+      group_by(Unit) %>%
+      group_modify(~ impute_GNDVI_weighted(.x, k, gdd_weight, julian_weight)) %>%
+      ungroup()
+    
+    # Verificar si se logró imputar algún dato
+    if (all(is.na(temp_data$GNDVI))) {
+      warning("Imputación fallida con k =", k)
+      next
+    }
+    
+    # Realizar la prueba KS en el dataset completo
+    observed_GNDVI <- data$GNDVI[!is.na(data$GNDVI)]  # Valores originales no faltantes de GNDVI
+    imputed_GNDVI <- temp_data$GNDVI  # Todos los valores de GNDVI después de la imputación
+    
+    ks_test <- ks.test(observed_GNDVI, imputed_GNDVI)
+    
+    cat("k =", k, "-> D:", ks_test$statistic, ", p-value:", ks_test$p.value, "\n")
+    
+    # Mantener el mejor k basado en la prueba KS (menor D, mayor p-value)
+    if (ks_test$statistic < best_D || (ks_test$statistic == best_D && ks_test$p.value > best_p_value)) {
+      best_D <- ks_test$statistic
+      best_p_value <- ks_test$p.value
+      best_k <- k
+      best_imputed_data <- temp_data
+    }
+  }
+  
+  # Si no se encontró un k adecuado
+  if (is.null(best_imputed_data)) {
+    stop("No se pudo seleccionar un k adecuado para la imputación.")
+  }
+  
+  # Asignar el mejor k a todas las filas
+  best_imputed_data$Final_Selected_k <- best_k
+  best_imputed_data$KS_D <- best_D
+  best_imputed_data$KS_p_value <- best_p_value
+  
+  # Imprimir la selección final
+  cat("Mejor k seleccionado:", best_k, "\n")
+  cat("KS Test final - D:", best_D, ", p-value:", best_p_value, "\n")
+  
+  return(best_imputed_data)
+}
+
+```
+
+GNDVI imputation
+```{r}
+StP23.3 <-  StP23.2 %>%
+  group_by(Unit) %>%
+  mutate(flight_number = row_number()) %>%
+  ungroup()
+
+# Reshape the DataFrame
+StP23_GNDVI <- StP23.3[, c("Unit", "flight_number", "gdd", "julian", "GNDVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+StP23_GNDVI_final <- impute_GNDVI_best_k(StP23_GNDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+# Reshape the DataFrame
+StP22_GNDVI <- StP22.3[, c("Unit", "flight_number", "gdd", "julian", "GNDVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+
+StP22_GNDVI_final <- impute_GNDVI_best_k(StP22_GNDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+
+# Reshape the DataFrame
+Urb22_GNDVI <- Urb22.3[, c("Unit", "flight_number", "gdd", "julian", "GNDVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+Urb22_GNDVI_final <- impute_GNDVI_best_k(Urb22_GNDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+# Reshape the DataFrame
+Urb23_GNDVI <- Urb23.3[, c("Unit", "flight_number", "gdd", "julian", "GNDVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+Urb23_GNDVI_final <- impute_GNDVI_best_k(Urb23_GNDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+# Reshape the DataFrame
+Neo22_GNDVI <- Neo22.3[, c("Unit", "flight_number", "gdd", "julian", "GNDVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+Neo22_GNDVI_final <- impute_GNDVI_best_k(Neo22_GNDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+# Reshape the DataFrame
+Neo23_GNDVI <- Neo23.3[, c("Unit", "flight_number", "gdd", "julian", "GNDVI", "temps5.26_mean", "cuml5.26")]
+
+
+# Apply the imputation function to each Unit group
+Neo23_GNDVI_final <- impute_GNDVI_best_k(Neo23_GNDVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+```
+
+EVI imputation function
+```{r EVI imputation}
+impute_EVI_best_k <- function(data, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1) {
+  
+  impute_EVI_weighted <- function(unit_data, k, gdd_weight, julian_weight) {
+    # Filtrar datos completos
+    complete_data <- unit_data[!is.na(unit_data$EVI), ]
+    
+    # Verificar si hay suficientes datos
+    if (nrow(complete_data) < k) {
+      warning(paste("No hay suficientes datos completos para aplicar KNN en la unidad:", unique(unit_data$Unit)))
+      unit_data$Selected_k <- NA  # Marcar como NA si no se pudo imputar
+      return(unit_data)
+    }
+    
+    # Filtrar datos con EVI faltante
+    rows_to_impute <- unit_data[is.na(unit_data$EVI), ]
+    
+    # Verificar si hay datos para imputar
+    if (nrow(rows_to_impute) == 0) {
+      unit_data$Selected_k <- k  # No hay imputación necesaria
+      return(unit_data)
+    }
+    
+    # Calcular distancias ponderadas
+    weighted_distances <- calculate_weighted_distance(complete_data, rows_to_impute, gdd_weight, julian_weight)
+    
+    # Verificar si la matriz de distancias es válida
+    if (nrow(weighted_distances) != nrow(rows_to_impute) || ncol(weighted_distances) != nrow(complete_data)) {
+      stop("Error: Las dimensiones de la matriz de distancias no coinciden con los datos.")
+    }
+    
+    # Aplicar imputación en bloque usando `apply()`
+    imputed_values <- apply(weighted_distances, 1, function(distances) {
+      nearest_indices <- order(distances)[1:min(k, length(distances))]  # Evitar errores por tamaño menor
+      
+      # Calcular pesos inversamente proporcionales a la distancia
+      weights <- 1 / (distances[nearest_indices] + 1e-6)  # Evitar división por cero
+      
+      # Si los pesos suman cero, usar la media de EVI como fallback
+      if (sum(weights) == 0) {
+        return(mean(complete_data$EVI, na.rm = TRUE))
+      } else {
+        return(sum(weights * complete_data$EVI[nearest_indices]) / sum(weights))
+      }
+    })
+    
+    # Asignar valores imputados a las filas originales
+    unit_data$EVI[is.na(unit_data$EVI)] <- imputed_values
+    unit_data$Selected_k <- k  # Agregar columna con el k seleccionado
+    
+    return(unit_data)
+  }
+  
+  # Variables para almacenar los mejores resultados
+  best_D <- Inf
+  best_p_value <- -Inf
+  best_k <- NULL
+  best_imputed_data <- NULL
+
+  # Loop sobre diferentes valores de k
+  for (k in k_values) {
+    cat("Probando k =", k, "...\n")
+    
+    # Aplicar la imputación por grupo
+    temp_data <- data %>%
+      group_by(Unit) %>%
+      group_modify(~ impute_EVI_weighted(.x, k, gdd_weight, julian_weight)) %>%
+      ungroup()
+    
+    # Verificar si se logró imputar algún dato
+    if (all(is.na(temp_data$EVI))) {
+      warning("Imputación fallida con k =", k)
+      next
+    }
+    
+    # Realizar la prueba KS en el dataset completo
+    observed_EVI <- data$EVI[!is.na(data$EVI)]  # Valores originales no faltantes de EVI
+    imputed_EVI <- temp_data$EVI  # Todos los valores de EVI después de la imputación
+    
+    ks_test <- ks.test(observed_EVI, imputed_EVI)
+    
+    cat("k =", k, "-> D:", ks_test$statistic, ", p-value:", ks_test$p.value, "\n")
+    
+    # Mantener el mejor k basado en la prueba KS (menor D, mayor p-value)
+    if (ks_test$statistic < best_D || (ks_test$statistic == best_D && ks_test$p.value > best_p_value)) {
+      best_D <- ks_test$statistic
+      best_p_value <- ks_test$p.value
+      best_k <- k
+      best_imputed_data <- temp_data
+    }
+  }
+  
+  # Si no se encontró un k adecuado
+  if (is.null(best_imputed_data)) {
+    stop("No se pudo seleccionar un k adecuado para la imputación.")
+  }
+  
+  # Asignar el mejor k a todas las filas
+  best_imputed_data$Final_Selected_k <- best_k
+  best_imputed_data$KS_D <- best_D
+  best_imputed_data$KS_p_value <- best_p_value
+  
+  # Imprimir la selección final
+  cat("Mejor k seleccionado:", best_k, "\n")
+  cat("KS Test final - D:", best_D, ", p-value:", best_p_value, "\n")
+  
+  return(best_imputed_data)
+}
+
+```
+
+EVI imputation
+```{r}
+# Reshape the DataFrame
+StP22_EVI <- StP22.3[, c("Unit", "flight_number", "gdd", "julian", "EVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+StP22_EVI_final <- impute_EVI_best_k(StP22_EVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+# Reshape the DataFrame
+StP23_EVI <- StP23.3[, c("Unit", "flight_number", "gdd", "julian", "EVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+StP23_EVI_final <- impute_EVI_best_k(StP23_EVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+# Reshape the DataFrame
+Urb23_EVI <- Urb23.3[, c("Unit", "flight_number", "gdd", "julian", "EVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+Urb23_EVI_final <- impute_EVI_best_k(Urb23_EVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+# Reshape the DataFrame
+Urb22_EVI <- Urb22.3[, c("Unit", "flight_number", "gdd", "julian", "EVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+Urb22_EVI_final <- impute_EVI_best_k(Urb22_EVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+# Reshape the DataFrame
+Neo23_EVI <- Neo23.3[, c("Unit", "flight_number", "gdd", "julian", "EVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+Neo23_EVI_final <- impute_EVI_best_k(Neo23_EVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+
+# Reshape the DataFrame
+Neo22_EVI <- Neo22.3[, c("Unit", "flight_number", "gdd", "julian", "EVI", "temps5.26_mean", "cuml5.26")]
+
+# Apply the imputation function to each Unit group
+Neo22_EVI_final <- impute_EVI_best_k(Neo22_EVI, k_values = c(2, 3, 5, 7, 10), gdd_weight = 1, julian_weight = 1)
+
+```
+
+
+Prepare the complete data frame
+```{r everything toghether}
+####Neo 22###
+Neo22_index <- merge(Neo22_NDVI_final[,1:7], Neo22_EVI_final [,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+Neo22_index <- merge(Neo22_index, Neo22_GNDVI_final[,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+###Neo 23###
+Neo23_index <- merge(Neo23_NDVI_final[,1:7], Neo23_EVI_final[,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+Neo23_index <- merge(Neo23_index, Neo23_GNDVI_final[,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+####Urb 22###
+Urb22_index <- merge(Urb22_NDVI_final[,1:7], Urb22_EVI_final[,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+Urb22_index <- merge(Urb22_index, Urb22_GNDVI_final[,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+###Neo 23###
+Urb23_index <- merge(Urb23_NDVI_final[,1:7], Urb23_EVI_final[,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+Urb23_index <- merge(Urb23_index, Urb23_GNDVI_final[,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+####St.P 22###
+StP22_index <- merge(StP22_NDVI_final[,1:7], StP22_EVI_final[,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+StP22_index <- merge(StP22_index, StP22_GNDVI_final[,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+###St.P 23###
+StP23_index <- merge(StP23_NDVI_final[,1:7], StP23_EVI_final[,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+StP23_index <- merge(StP23_index, StP23_GNDVI_final[,1:7], by = c("Unit", "flight_number", "gdd", "julian", "temps5.26_mean", "cuml5.26"))
+
+```
+
+
+```{r}
+HTP<-read.csv("HTPMET.csv")
+```
+
+```{r}
+HTP <- rename(HTP, Unit = observationUnitDbId)
+HTP <- rename(HTP, Grain.yield = Grain.yield...kg.ha.CO_321.0001218)
+
+
+Neo_22<-HTP%>%
+  filter(studyName=="YT_Neo_22")
+Neo_23<-HTP%>%
+  filter(studyName=="YT_Neo_23")
+
+Urb_22<-HTP%>%
+  filter(studyName=="YT_Urb_22")
+Urb_23<-HTP%>%
+  filter(studyName=="YT_Urb_23")
+
+StP_22<-HTP%>%
+  filter(studyName=="YT_Stp_22")
+StP_23<-HTP%>%
+  filter(studyName=="YT_Stp_23")
+
+```
+
+```{r}
+Neo_22 <- Neo_22[, c("Unit", "Grain.yield")]
+Neo_23 <- Neo_23[, c("Unit", "Grain.yield")]
+
+Urb_22 <- Urb_22[, c("Unit", "Grain.yield")]
+Urb_23 <- Urb_23[, c("Unit", "Grain.yield")]
+
+StP_22 <- StP_22[, c("Unit", "Grain.yield")]
+StP_23 <- StP_23[, c("Unit", "Grain.yield")]
+
+```
+
+Complete data
+```{r}
+
+numeric_cols <- c("julian", "NDVI", "GNDVI", "EVI", "temps5.26_mean", "cuml5.26", "gdd")
+StP23_index[numeric_cols] <- lapply(StP23_index[numeric_cols], as.numeric)
+StP23_index1 <- StP23_index %>%
+  pivot_wider(
+    names_from = flight_number,
+    values_from = c(julian, NDVI, GNDVI, EVI, temps5.26_mean, cuml5.26, gdd),
+    names_sep = "_"
+  )
+StP23_all<-merge(StP23_index1, StP_23, by="Unit")
+StP23_all$Location<-"St. Peter 2023"
+
+sapply(StP23_all, class)
+
+
+StP22_index[numeric_cols] <- lapply(StP22_index[numeric_cols], as.numeric)
+StP22_index1 <- StP22_index %>%
+  pivot_wider(
+    names_from = flight_number,
+    values_from = c(julian, NDVI, GNDVI, EVI, temps5.26_mean, cuml5.26, gdd),
+    names_sep = "_"
+  )
+
+StP22_all<-merge(StP22_index1, StP_22, by="Unit")
+sapply(StP22_all, as.numeric)
+StP22_all$Location<-"St. Peter 2022"
+
+###urb
+Urb22_index[numeric_cols] <- lapply(Urb22_index[numeric_cols], as.numeric)
+Urb22_index1 <- Urb22_index %>%
+  pivot_wider(
+    names_from = flight_number,
+    values_from = c(julian, NDVI, GNDVI, EVI, temps5.26_mean, cuml5.26, gdd),
+    names_sep = "_"
+  )
+Urb22_all<-merge(Urb22_index1, Urb_22, by="Unit")
+sapply(Urb22_all, as.numeric)
+Urb22_all$Location<-"Urbana 2022"
+
+
+Urb23_index[numeric_cols] <- lapply(Urb23_index[numeric_cols], as.numeric)
+Urb23_index1 <- Urb23_index %>%
+  pivot_wider(
+    names_from = flight_number,
+    values_from = c(julian, NDVI, GNDVI, EVI, temps5.26_mean, cuml5.26, gdd),
+    names_sep = "_"
+  )
+Urb23_all<-merge(Urb23_index1, Urb_23, by="Unit")
+sapply(Urb23_all, as.numeric)
+Urb23_all$Location<-"Urbana 2023"
+
+###Neo
+Neo22_index[numeric_cols] <- lapply(Neo22_index[numeric_cols], as.numeric)
+Neo22_index1 <- Neo22_index %>%
+  pivot_wider(
+    names_from = flight_number,
+    values_from = c(julian, NDVI, GNDVI, EVI, temps5.26_mean, cuml5.26, gdd),
+    names_sep = "_"
+  )
+Neo22_all<-merge(Neo22_index1, Neo_22, by="Unit")
+sapply(Neo22_all, as.numeric)
+Neo22_all$Location<-"Neoga 2022"
+
+
+#Neo 23
+Neo23_index[numeric_cols] <- lapply(Neo23_index[numeric_cols], as.numeric)
+Neo23_index1 <- Neo23_index %>%
+  pivot_wider(
+    names_from = flight_number,
+    values_from = c(julian, NDVI, GNDVI, EVI, temps5.26_mean, cuml5.26, gdd),
+    names_sep = "_"
+  )
+Neo23_all<-merge(Neo23_index1, Neo_23, by="Unit")
+sapply(Neo23_all, as.numeric)
+Neo23_all$Location<-"Neoga 2023"
+
+ncol(Neo23_all)
+ncol(Neo22_all)
+ncol(Urb23_all)
+ncol(Urb22_all)
+ncol(StP23_all)
+ncol(StP22_all)
+
+
+All<-rbind(Neo23_all, Neo22_all, Urb23_all, Urb22_all, StP23_all, StP22_all)
+
+write.csv(All, "All.csv")
+
+getwd()
+```
+

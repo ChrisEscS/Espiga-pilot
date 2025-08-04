@@ -1,0 +1,1112 @@
+---
+title: "Mask within location"
+author: "Christian Escoto"
+date: "2025-06-30"
+output: pdf_document
+---
+
+Load the data
+```{r Data}
+All<-read.csv("All.csv")
+All$X<-NULL
+
+All <- All %>%
+  select(-c(starts_with("julian", ignore.case = FALSE)))
+
+All <- All %>%
+  select(-c(starts_with("temps5", ignore.case = FALSE)))
+
+All <- All %>%
+  select(-c(starts_with("cuml", ignore.case = FALSE)))
+
+```
+
+
+
+```{r cars}
+N22<-All%>%
+  filter(Location=="Neoga 2022")
+
+N23<-All%>%
+  filter(Location=="Neoga 2023")
+# Replace infinite values with NA
+N23[sapply(N23, is.infinite)] <- NA
+
+N23<-na.omit(N23)
+
+U22<-All%>%
+  filter(Location=="Urbana 2022")
+U22[sapply(U22, is.infinite)] <- NA
+
+U22<-na.omit(U22)
+
+U23<-All%>%
+  filter(Location=="Urbana 2023")
+
+S22<-All%>%
+  filter(Location=="St. Peter 2022")
+
+S23<-All%>%
+  filter(Location=="St. Peter 2023")
+```
+
+Now we are going to get a 50% percent of the sample for the masking process (crossing validation)
+```{r N23}
+set.seed(123)
+# Calculate the sample size (50% of the filtered rows)
+sample1_N23 <- ceiling(0.5 * nrow(N23))
+
+# Take a random sample of 50%
+set.seed(123)  # Set seed for reproducibility
+sampled1_N23<- N23[sample(nrow(N23), sample1_N23), ]
+sampled1_N23.copy<-sampled1_N23
+# Remove the sampled rows from the original data frame
+sampled2_N23 <- N23[!rownames(N23) %in% rownames(sampled1_N23), ]
+sampled2_N23.copy<-sampled2_N23
+
+
+#Eliminate the unnecesary 
+sampled2_N23$Location<-NULL
+sampled2_N23$Unit<-NULL
+sampled1_N23$Location<-NULL
+sampled1_N23$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_N23.1<-sampled1_N23
+sampled1_N23.1$Grain.yield<-NULL
+
+sampled2_N23<-sapply(sampled2_N23, as.numeric)
+sampled1_N23.1<-sapply(sampled1_N23.1, as.numeric)
+
+sampled2_N23[is.infinite(sampled2_N23)]<-0
+sampled2_N23[is.nan(sampled2_N23)]<-0
+sampled2_N23[is.na(sampled2_N23)]<-0
+
+sampled1_N23.1<-as.data.frame(sampled1_N23.1)
+sampled2_N23<-as.data.frame(sampled2_N23)
+
+```
+
+```{r N22}
+# Calculate the sample size (50% of the filtered rows)
+sample1_N22 <- ceiling(0.5 * nrow(N22))
+
+# Take a random sample of 50%
+set.seed(123)  # Set seed for reproducibility
+sampled1_N22<- N22[sample(nrow(N22), sample1_N22), ]
+sampled1_N22.copy<-sampled1_N22
+# Remove the sampled rows from the original data frame
+sampled2_N22 <- N22[!rownames(N22) %in% rownames(sampled1_N22), ]
+sampled2_N22.copy<-sampled2_N22
+
+#Eliminate the unnecesary 
+sampled2_N22$Location<-NULL
+sampled2_N22$Unit<-NULL
+sampled1_N22$Location<-NULL
+sampled1_N22$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_N22.1<-sampled1_N22
+sampled1_N22.1$Grain.yield<-NULL
+
+sampled2_N22<-sapply(sampled2_N22, as.numeric)
+sampled1_N22.1<-sapply(sampled1_N22.1, as.numeric)
+
+sampled2_N22[is.infinite(sampled2_N22)]<-0
+sampled2_N22[is.nan(sampled2_N22)]<-0
+sampled2_N22[is.na(sampled2_N22)]<-0
+
+sampled1_N22.1<-as.data.frame(sampled1_N22.1)
+sampled2_N22<-as.data.frame(sampled2_N22)
+
+```
+
+```{r U23}
+# Calculate the sample size (50% of the filtered rows)
+sample1_U23 <- ceiling(0.5 * nrow(U23))
+
+# Take a random sample of 50%
+set.seed(123)  # Set seed for reproducibility
+sampled1_U23<- U23[sample(nrow(U23), sample1_U23), ]
+sampled1_U23.copy<-sampled1_U23
+
+# Remove the sampled rows from the original data frame
+sampled2_U23 <- U23[!rownames(U23) %in% rownames(sampled1_U23), ]
+sampled1_U23.copy<-sampled1_U23
+
+#Eliminate the unnecesary 
+sampled2_U23$Location<-NULL
+sampled2_U23$Unit<-NULL
+sampled1_U23$Location<-NULL
+sampled1_U23$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_U23.1<-sampled1_U23
+sampled1_U23.1$Grain.yield<-NULL
+
+sampled2_U23<-sapply(sampled2_U23, as.numeric)
+sampled1_U23.1<-sapply(sampled1_U23.1, as.numeric)
+
+sampled2_U23[is.infinite(sampled2_U23)]<-0
+sampled2_U23[is.nan(sampled2_U23)]<-0
+sampled2_U23[is.na(sampled2_U23)]<-0
+
+sampled1_U23.1<-as.data.frame(sampled1_U23.1)
+sampled2_U23<-as.data.frame(sampled2_U23)
+
+```
+
+```{r U22}
+# Calculate the sample size (50% of the filtered rows)
+sample1_U22 <- ceiling(0.5 * nrow(U22))
+
+# Take a random sample of 50%
+set.seed(123)  # Set seed for reproducibility
+sampled1_U22<- U22[sample(nrow(U22), sample1_U22), ]
+sampled1_U22.copy<-sampled1_U22
+
+# Remove the sampled rows from the original data frame
+sampled2_U22 <- U22[!rownames(U22) %in% rownames(sampled1_U22), ]
+sampled2_U22.copy<-sampled2_U22
+
+
+#Eliminate the unnecesary 
+sampled2_U22$Location<-NULL
+sampled2_U22$Unit<-NULL
+sampled1_U22$Location<-NULL
+sampled1_U22$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_U22.1<-sampled1_U22
+sampled1_U22.1$Grain.yield<-NULL
+
+sampled2_U22<-sapply(sampled2_U22, as.numeric)
+sampled1_U22.1<-sapply(sampled1_U22.1, as.numeric)
+
+sampled2_U22[is.infinite(sampled2_U22)]<-0
+sampled2_U22[is.nan(sampled2_U22)]<-0
+sampled2_U22[is.na(sampled2_U22)]<-0
+
+sampled1_U22.1<-as.data.frame(sampled1_U22.1)
+sampled2_U22<-as.data.frame(sampled2_U22)
+
+```
+
+```{r S23}
+# Calculate the sample size (50% of the filtered rows)
+sample1_S23 <- ceiling(0.5 * nrow(S23))
+
+# Take a random sample of 50%
+set.seed(123)  # Set seed for reproducibility
+sampled1_S23<- S23[sample(nrow(S23), sample1_S23), ]
+sampled1_S23.copy<-sampled1_S23
+
+# Remove the sampled rows from the original data frame
+sampled2_S23 <- S23[!rownames(S23) %in% rownames(sampled1_S23), ]
+sampled1_S23.copy<-sampled1_S23
+
+
+#Eliminate the unnecesary 
+sampled2_S23$Location<-NULL
+sampled2_S23$Unit<-NULL
+sampled1_S23$Location<-NULL
+sampled1_S23$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_S23.1<-sampled1_S23
+sampled1_S23.1$Grain.yield<-NULL
+
+sampled2_S23<-sapply(sampled2_S23, as.numeric)
+sampled1_S23.1<-sapply(sampled1_S23.1, as.numeric)
+
+sampled2_S23[is.infinite(sampled2_S23)]<-0
+sampled2_S23[is.nan(sampled2_S23)]<-0
+sampled2_S23[is.na(sampled2_S23)]<-0
+
+sampled1_S23.1<-as.data.frame(sampled1_S23.1)
+sampled2_S23<-as.data.frame(sampled2_S23)
+
+```
+
+```{r S22}
+# Calculate the sample size (50% of the filtered rows)
+sample1_S22 <- ceiling(0.5 * nrow(S22))
+
+# Take a random sample of 50%
+set.seed(123)  # Set seed for reproducibility
+sampled1_S22<- S22[sample(nrow(S22), sample1_S22), ]
+sampled1_S22.copy<-sampled1_S22
+
+
+# Remove the sampled rows from the original data frame
+sampled2_S22 <- S22[!rownames(S22) %in% rownames(sampled1_S22), ]
+sampled2_S22.copy<-sampled2_S22
+
+
+#Eliminate the unnecesary 
+sampled2_S22$Location<-NULL
+sampled2_S22$Unit<-NULL
+sampled1_S22$Location<-NULL
+sampled1_S22$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_S22.1<-sampled1_S22
+sampled1_S22.1$Grain.yield<-NULL
+
+sampled2_S22<-sapply(sampled2_S22, as.numeric)
+sampled1_S22.1<-sapply(sampled1_S22.1, as.numeric)
+
+sampled2_S22[is.infinite(sampled2_S22)]<-0
+sampled2_S22[is.nan(sampled2_S22)]<-0
+sampled2_S22[is.na(sampled2_S22)]<-0
+
+sampled1_S22.1<-as.data.frame(sampled1_S22.1)
+sampled2_S22<-as.data.frame(sampled2_S22)
+
+```
+
+Now we are going to define a function to get the prediction by the method catboost
+```{r catboost}
+
+#Making the prediction
+result_N23_cat <-cat_model(train_data = sampled2_N23, test_data = sampled1_N23,  target_variable= "Grain.yield", seed = 123)
+result_N23_cat$RMSE
+#472.2685
+result_N23_cat$correlation
+#0.55
+
+result2_N23_cat <- cat_model(train_data = sampled1_N23, test_data = sampled2_N23, target_variable= "Grain.yield", seed = 123)
+result2_N23_cat$RMSE
+# 448.1905
+result2_N23_cat$correlation
+#0.57
+
+
+#Making the prediction
+result_N22_cat <-cat_model(train_data = sampled2_N22, test_data = sampled1_N22,  target_variable= "Grain.yield", seed = 123)
+result_N22_cat$RMSE
+# 388.7095
+result_N22_cat$correlation
+# 0.7375431
+
+result2_N22_cat <- cat_model(train_data = sampled1_N22, test_data = sampled2_N22, target_variable= "Grain.yield", seed = 123)
+result2_N22_cat$RMSE
+# 396.5059
+result2_N22_cat$correlation
+# 0.7422673
+
+
+#Making the prediction
+result_U23_cat <-cat_model(train_data = sampled2_U23, test_data = sampled1_U23,  target_variable= "Grain.yield", seed = 123)
+result_U23_cat$RMSE
+#  575.7149
+result_U23_cat$correlation
+# 0.76
+
+result2_U23_cat <- cat_model(train_data = sampled1_U23, test_data = sampled2_U23, target_variable= "Grain.yield", seed = 123)
+result2_U23_cat$RMSE
+# 591.6117
+result2_U23_cat$correlation
+# 0.75
+
+#Making the prediction
+result_U22_cat <-cat_model(train_data = sampled2_U22, test_data = sampled1_U22,  target_variable= "Grain.yield", seed = 123)
+result_U22_cat$RMSE
+# 424.24
+result_U22_cat$correlation
+# 0.74
+
+
+result2_U22_cat <- cat_model(train_data = sampled1_U22, test_data = sampled2_U22, target_variable= "Grain.yield", seed = 123)
+result2_U22_cat$RMSE
+# 497.36
+result2_U22_cat$correlation
+# 0.67
+
+
+#Making the prediction
+result_S23_cat <-cat_model(train_data = sampled2_S23, test_data = sampled1_S23,  target_variable= "Grain.yield", seed = 123)
+result_S23_cat$RMSE
+#   392.9064
+result_S23_cat$correlation
+# 0.84
+
+result2_S23_cat <- cat_model(train_data = sampled1_S23, test_data = sampled2_S23, target_variable= "Grain.yield", seed = 123)
+result2_S23_cat$RMSE
+# 378.45
+result2_S23_cat$correlation
+# 0.85
+
+#Making the prediction
+result_S22_cat <-cat_model(train_data = sampled2_S22, test_data = sampled1_S22,  target_variable= "Grain.yield", seed = 123)
+result_S22_cat$RMSE
+# 398.17
+result_S22_cat$correlation
+# 0.55
+
+
+result2_S22_cat <- cat_model(train_data = sampled1_S22, test_data = sampled2_S22, target_variable= "Grain.yield", seed = 123)
+result2_S22_cat$RMSE
+# 411.36
+result2_S22_cat$correlation
+# 0.60
+
+```
+
+```{r rf}
+#Making the prediction
+result_N23_rf <-rf_model(train_data = sampled2_N23, test_data = sampled1_N23,  target_variable= "Grain.yield", seed = 123)
+result_N23_rf$RMSE
+#477.89
+result_N23_rf$correlation
+#0.53
+
+result2_N23_rf <- rf_model(train_data = sampled1_N23, test_data = sampled2_N23, target_variable= "Grain.yield", seed = 123)
+result2_N23_rf$RMSE
+# 450.33
+result2_N23_rf$correlation
+#0.56
+
+
+#Making the prediction
+result_N22_rf <-rf_model(train_data = sampled2_N22, test_data = sampled1_N22,  target_variable= "Grain.yield", seed = 123)
+result_N22_rf$RMSE
+# 392.11
+result_N22_rf$correlation
+# 0.73
+
+result2_N22_rf <- rf_model(train_data = sampled1_N22, test_data = sampled2_N22, target_variable= "Grain.yield", seed = 123)
+result2_N22_rf$RMSE
+# 385.88
+result2_N22_rf$correlation
+# 0.76
+
+
+#Making the prediction
+result_U23_rf <-rf_model(train_data = sampled2_U23, test_data = sampled1_U23,  target_variable= "Grain.yield", seed = 123)
+result_U23_rf$RMSE
+#  595.98
+result_U23_rf$correlation
+# 0.74
+
+result2_U23_rf <- rf_model(train_data = sampled1_U23, test_data = sampled2_U23, target_variable= "Grain.yield", seed = 123)
+result2_U23_rf$RMSE
+# 604.28
+result2_U23_rf$correlation
+# 0.74
+
+#Making the prediction
+result_U22_rf <-rf_model(train_data = sampled2_U22, test_data = sampled1_U22,  target_variable= "Grain.yield", seed = 123)
+result_U22_rf$RMSE
+# 421.17
+result_U22_rf$correlation
+# 0.75
+
+
+result2_U22_rf <- rf_model(train_data = sampled1_U22, test_data = sampled2_U22, target_variable= "Grain.yield", seed = 123)
+result2_U22_rf$RMSE
+# 499.7
+result2_U22_rf$correlation
+# 0.66
+
+
+#Making the prediction
+result_S23_rf <-rf_model(train_data = sampled2_S23, test_data = sampled1_S23,  target_variable= "Grain.yield", seed = 123)
+result_S23_rf$RMSE
+#   402.99
+result_S23_rf$correlation
+# 0.84
+
+result2_S23_rf <- rf_model(train_data = sampled1_S23, test_data = sampled2_S23, target_variable= "Grain.yield", seed = 123)
+result2_S23_rf$RMSE
+# 393.97
+result2_S23_rf$correlation
+# 0.84
+
+#Making the prediction
+result_S22_rf <-rf_model(train_data = sampled2_S22, test_data = sampled1_S22,  target_variable= "Grain.yield", seed = 123)
+result_S22_rf$RMSE
+# 408.3
+result_S22_rf$correlation
+# 0.52
+
+
+result2_S22_rf <- rf_model(train_data = sampled1_S22, test_data = sampled2_S22, target_variable= "Grain.yield", seed = 123)
+result2_S22_rf$RMSE
+# 404.76
+result2_S22_rf$correlation
+# 0.63
+
+```
+
+```{r mboost}
+#Making the prediction
+result_N23_mboost <-mboost_model(train_data = sampled2_N23, test_data = sampled1_N23,  target_variable= "Grain.yield", seed = 123)
+result_N23_mboost$RMSE
+#475.57
+result_N23_mboost$correlation
+#0.54
+
+result2_N23_mboost <- mboost_model(train_data = sampled1_N23, test_data = sampled2_N23, target_variable= "Grain.yield", seed = 123)
+result2_N23_mboost$RMSE
+# 445.96
+result2_N23_mboost$correlation
+#0.57
+
+
+#Making the prediction
+result_N22_mboost <-mboost_model(train_data = sampled2_N22, test_data = sampled1_N22,  target_variable= "Grain.yield", seed = 123)
+result_N22_mboost$RMSE
+# 367.44
+result_N22_mboost$correlation
+# 0.77
+
+result2_N22_mboost <- mboost_model(train_data = sampled1_N22, test_data = sampled2_N22, target_variable= "Grain.yield", seed = 123)
+result2_N22_mboost$RMSE
+# 369.17
+result2_N22_mboost$correlation
+# 0.78
+
+
+#Making the prediction
+result_U23_mboost <-mboost_model(train_data = sampled2_U23, test_data = sampled1_U23,  target_variable= "Grain.yield", seed = 123)
+result_U23_mboost$RMSE
+#  544.29
+result_U23_mboost$correlation
+# 0.79
+
+result2_U23_mboost <- mboost_model(train_data = sampled1_U23, test_data = sampled2_U23, target_variable= "Grain.yield", seed = 123)
+result2_U23_mboost$RMSE
+# 585.82
+result2_U23_mboost$correlation
+# 0.76
+
+#Making the prediction
+result_U22_mboost <-mboost_model(train_data = sampled2_U22, test_data = sampled1_U22,  target_variable= "Grain.yield", seed = 123)
+result_U22_mboost$RMSE
+# 409.61
+result_U22_mboost$correlation
+# 0.77
+
+
+result2_U22_mboost <- mboost_model(train_data = sampled1_U22, test_data = sampled2_U22, target_variable= "Grain.yield", seed = 123)
+result2_U22_mboost$RMSE
+# 481.1
+result2_U22_mboost$correlation
+# 0.7
+
+
+#Making the prediction
+result_S23_mboost <-mboost_model(train_data = sampled2_S23, test_data = sampled1_S23,  target_variable= "Grain.yield", seed = 123)
+result_S23_mboost$RMSE
+#   380.7
+result_S23_mboost$correlation
+# 0.86
+
+result2_S23_mboost <- mboost_model(train_data = sampled1_S23, test_data = sampled2_S23, target_variable= "Grain.yield", seed = 123)
+result2_S23_mboost$RMSE
+# 369.96
+result2_S23_mboost$correlation
+# 0.86
+
+#Making the prediction
+result_S22_mboost <-mboost_model(train_data = sampled2_S22, test_data = sampled1_S22,  target_variable= "Grain.yield", seed = 123)
+result_S22_mboost$RMSE
+# 392.92
+result_S22_mboost$correlation
+# 0.57
+
+
+result2_S22_mboost <- mboost_model(train_data = sampled1_S22, test_data = sampled2_S22, target_variable= "Grain.yield", seed = 123)
+result2_S22_mboost$RMSE
+# 379.07
+result2_S22_mboost$correlation
+# 0.67
+```
+
+```{r xgb}
+#Making the prediction
+result_N23_xgb <-xgb_model(train_data = sampled2_N23, test_data = sampled1_N23,  target_variable= "Grain.yield", seed = 123)
+result_N23_xgb$RMSE
+#476.55
+result_N23_xgb$correlation
+#0.55
+
+result2_N23_xgb <- xgb_model(train_data = sampled1_N23, test_data = sampled2_N23, target_variable= "Grain.yield", seed = 123)
+result2_N23_xgb$RMSE
+# 452.78
+result2_N23_xgb$correlation
+#0.57
+
+
+#Making the prediction
+result_N22_xgb <-xgb_model(train_data = sampled2_N22, test_data = sampled1_N22,  target_variable= "Grain.yield", seed = 123)
+result_N22_xgb$RMSE
+# 391.79
+result_N22_xgb$correlation
+# 0.75
+
+result2_N22_xgb <- xgb_model(train_data = sampled1_N22, test_data = sampled2_N22, target_variable= "Grain.yield", seed = 123)
+result2_N22_xgb$RMSE
+# 383.16
+result2_N22_xgb$correlation
+# 0.76
+
+
+#Making the prediction
+result_U23_xgb <-xgb_model(train_data = sampled2_U23, test_data = sampled1_U23,  target_variable= "Grain.yield", seed = 123)
+result_U23_xgb$RMSE
+#  570.18
+result_U23_xgb$correlation
+# 0.77
+
+result2_U23_xgb <- xgb_model(train_data = sampled1_U23, test_data = sampled2_U23, target_variable= "Grain.yield", seed = 123)
+result2_U23_xgb$RMSE
+# 587.35
+result2_U23_xgb$correlation
+# 0.75
+
+#Making the prediction
+result_U22_xgb <-xgb_model(train_data = sampled2_U22, test_data = sampled1_U22,  target_variable= "Grain.yield", seed = 123)
+result_U22_xgb$RMSE
+# 587.35
+result_U22_xgb$correlation
+# 0.75
+
+
+result2_U22_xgb <- xgb_model(train_data = sampled1_U22, test_data = sampled2_U22, target_variable= "Grain.yield", seed = 123)
+result2_U22_xgb$RMSE
+# 493.87
+result2_U22_xgb$correlation
+# 0.67
+
+
+#Making the prediction
+result_S23_xgb <-xgb_model(train_data = sampled2_S23, test_data = sampled1_S23,  target_variable= "Grain.yield", seed = 123)
+result_S23_xgb$RMSE
+# 390.85
+result_S23_xgb$correlation
+# 0.85
+
+result2_S23_xgb <- xgb_model(train_data = sampled1_S23, test_data = sampled2_S23, target_variable= "Grain.yield", seed = 123)
+result2_S23_xgb$RMSE
+# 385.85
+result2_S23_xgb$correlation
+# 0.84
+
+#Making the prediction
+result_S22_xgb <-xgb_model(train_data = sampled2_S22, test_data = sampled1_S22,  target_variable= "Grain.yield", seed = 123)
+result_S22_xgb$RMSE
+# 406.76
+result_S22_xgb$correlation
+# 0.54
+
+
+result2_S22_xgb <- xgb_model(train_data = sampled1_S22, test_data = sampled2_S22, target_variable= "Grain.yield", seed = 123)
+result2_S22_xgb$RMSE
+# 396.92
+result2_S22_xgb$correlation
+# 0.65
+
+```
+
+```{r bayesA}
+
+#Making the prediction
+result_N23_bayesA <-bayesA_model(train_data = sampled2_N23, test_data = sampled1_N23,  target_variable= "Grain.yield")
+result_N23_bayesA$RMSE
+#476.33
+result_N23_bayesA$correlation
+#0.54
+
+result2_N23_bayesA <- bayesA_model(train_data = sampled1_N23, test_data = sampled2_N23, target_variable= "Grain.yield" )
+result2_N23_bayesA$RMSE
+# 447.88
+result2_N23_bayesA$correlation
+#0.57
+
+
+#Making the prediction
+result_N22_bayesA <-bayesA_model(train_data = sampled2_N22, test_data = sampled1_N22,  target_variable= "Grain.yield")
+result_N22_bayesA$RMSE
+# 363.4
+result_N22_bayesA$correlation
+# 0.78
+
+result2_N22_bayesA <- bayesA_model(train_data = sampled1_N22, test_data = sampled2_N22, target_variable= "Grain.yield")
+result2_N22_bayesA$RMSE
+# 367.35
+result2_N22_bayesA$correlation
+# 0.78
+
+
+#Making the prediction
+result_U23_bayesA <-bayesA_model(train_data = sampled2_U23, test_data = sampled1_U23,  target_variable= "Grain.yield" )
+result_U23_bayesA$RMSE
+#  547.44
+result_U23_bayesA$correlation
+# 0.79
+
+result2_U23_bayesA <- bayesA_model(train_data = sampled1_U23, test_data = sampled2_U23, target_variable= "Grain.yield" )
+result2_U23_bayesA$RMSE
+# 656.22
+result2_U23_bayesA$correlation
+# 0.71
+
+#Making the prediction
+result_U22_bayesA <-bayesA_model(train_data = sampled2_U22, test_data = sampled1_U22,  target_variable= "Grain.yield" )
+result_U22_bayesA$RMSE
+# 389.45
+result_U22_bayesA$correlation
+# 0.79
+
+
+result2_U22_bayesA <- bayesA_model(train_data = sampled1_U22, test_data = sampled2_U22, target_variable= "Grain.yield" )
+result2_U22_bayesA$RMSE
+# 470.89
+result2_U22_bayesA$correlation
+# 0.71
+
+
+#Making the prediction
+result_S23_bayesA <-bayesA_model(train_data = sampled2_S23, test_data = sampled1_S23,  target_variable= "Grain.yield" )
+result_S23_bayesA$RMSE
+#   362.37
+result_S23_bayesA$correlation
+# 0.87
+
+result2_S23_bayesA <- bayesA_model(train_data = sampled1_S23, test_data = sampled2_S23, target_variable= "Grain.yield" )
+result2_S23_bayesA$RMSE
+# 357.3
+result2_S23_bayesA$correlation
+# 0.87
+
+#Making the prediction
+result_S22_bayesA <-bayesA_model(train_data = sampled2_S22, test_data = sampled1_S22,  target_variable= "Grain.yield" )
+result_S22_bayesA$RMSE
+# 390.4
+result_S22_bayesA$correlation
+# 0.57
+
+
+result2_S22_bayesA <- bayesA_model(train_data = sampled1_S22, test_data = sampled2_S22, target_variable= "Grain.yield" )
+result2_S22_bayesA$RMSE
+#379.21
+result2_S22_bayesA$correlation
+# 0.67
+
+```
+
+```{r bayesL}
+#Making the prediction
+result_N23_bayesL <-bayesL_model(train_data = sampled2_N23, test_data = sampled1_N23,  target_variable= "Grain.yield", )
+result_N23_bayesL$RMSE
+#474.24
+result_N23_bayesL$correlation
+#0.54
+
+result2_N23_bayesL <- bayesL_model(train_data = sampled1_N23, test_data = sampled2_N23, target_variable= "Grain.yield", )
+result2_N23_bayesL$RMSE
+# 448.26
+result2_N23_bayesL$correlation
+#0.57
+
+
+#Making the prediction
+result_N22_bayesL <-bayesL_model(train_data = sampled2_N22, test_data = sampled1_N22,  target_variable= "Grain.yield", )
+result_N22_bayesL$RMSE
+# 367.33
+result_N22_bayesL$correlation
+# 0.77
+
+result2_N22_bayesL <- bayesL_model(train_data = sampled1_N22, test_data = sampled2_N22, target_variable= "Grain.yield", )
+result2_N22_bayesL$RMSE
+# 369.0.6
+result2_N22_bayesL$correlation
+# 0.78
+
+
+#Making the prediction
+result_U23_bayesL <-bayesL_model(train_data = sampled2_U23, test_data = sampled1_U23,  target_variable= "Grain.yield", )
+result_U23_bayesL$RMSE
+#  549.62
+result_U23_bayesL$correlation
+# 0.78
+
+result2_U23_bayesL <- bayesL_model(train_data = sampled1_U23, test_data = sampled2_U23, target_variable= "Grain.yield", )
+result2_U23_bayesL$RMSE
+# 672.53
+result2_U23_bayesL$correlation
+# 0.69
+
+#Making the prediction
+result_U22_bayesL <-bayesL_model(train_data = sampled2_U22, test_data = sampled1_U22,  target_variable= "Grain.yield", )
+result_U22_bayesL$RMSE
+# 389.58
+result_U22_bayesL$correlation
+# 0.79
+
+
+result2_U22_bayesL <- bayesL_model(train_data = sampled1_U22, test_data = sampled2_U22, target_variable= "Grain.yield", )
+result2_U22_bayesL$RMSE
+# 470.88
+result2_U22_bayesL$correlation
+# 0.71
+
+
+#Making the prediction
+result_S23_bayesL <-bayesL_model(train_data = sampled2_S23, test_data = sampled1_S23,  target_variable= "Grain.yield", )
+result_S23_bayesL$RMSE
+# 367.68
+result_S23_bayesL$correlation
+# 0.87
+
+result2_S23_bayesL <- bayesL_model(train_data = sampled1_S23, test_data = sampled2_S23, target_variable= "Grain.yield", )
+result2_S23_bayesL$RMSE
+# 358.31
+result2_S23_bayesL$correlation
+# 0.87
+
+#Making the prediction
+result_S22_bayesL <-bayesL_model(train_data = sampled2_S22, test_data = sampled1_S22,  target_variable= "Grain.yield", )
+result_S22_bayesL$RMSE
+# 391.22
+result_S22_bayesL$correlation
+# 0.57
+
+
+result2_S22_bayesL <- bayesL_model(train_data = sampled1_S22, test_data = sampled2_S22, target_variable= "Grain.yield", )
+result2_S22_bayesL$RMSE
+# 383.4938
+result2_S22_bayesL$correlation
+# 0.67
+
+```
+
+```{r bayesR}
+#Making the prediction
+result_N23_bayesR <-bayesR_model(train_data = sampled2_N23, test_data = sampled1_N23,  target_variable= "Grain.yield", )
+result_N23_bayesR$RMSE
+#471.27
+result_N23_bayesR$correlation
+#0.55
+
+result2_N23_bayesR <- bayesR_model(train_data = sampled1_N23, test_data = sampled2_N23, target_variable= "Grain.yield", )
+result2_N23_bayesR$RMSE
+# 448.99
+result2_N23_bayesR$correlation
+#0.56
+
+
+#Making the prediction
+result_N22_bayesR <-bayesR_model(train_data = sampled2_N22, test_data = sampled1_N22,  target_variable= "Grain.yield", )
+result_N22_bayesR$RMSE
+# 365.98
+result_N22_bayesR$correlation
+# 0.77
+
+result2_N22_bayesR <- bayesR_model(train_data = sampled1_N22, test_data = sampled2_N22, target_variable= "Grain.yield", )
+result2_N22_bayesR$RMSE
+# 368.11
+result2_N22_bayesR$correlation
+# 0.78
+
+
+#Making the prediction
+result_U23_bayesR <-bayesR_model(train_data = sampled2_U23, test_data = sampled1_U23,  target_variable= "Grain.yield", )
+result_U23_bayesR$RMSE
+#  549.92
+result_U23_bayesR$correlation
+# 0.78
+
+result2_U23_bayesR <- bayesR_model(train_data = sampled1_U23, test_data = sampled2_U23, target_variable= "Grain.yield", )
+result2_U23_bayesR$RMSE
+# 698.87
+result2_U23_bayesR$correlation
+# 0.68
+
+#Making the prediction
+result_U22_bayesR <-bayesR_model(train_data = sampled2_U22, test_data = sampled1_U22,  target_variable= "Grain.yield", )
+result_U22_bayesR$RMSE
+# 390.81
+result_U22_bayesR$correlation
+# 0.79
+
+
+result2_U22_bayesR <- bayesR_model(train_data = sampled1_U22, test_data = sampled2_U22, target_variable= "Grain.yield", )
+result2_U22_bayesR$RMSE
+# 470.67
+result2_U22_bayesR$correlation
+# 0.71
+
+
+#Making the prediction
+result_S23_bayesR <-bayesR_model(train_data = sampled2_S23, test_data = sampled1_S23,  target_variable= "Grain.yield", )
+result_S23_bayesR$RMSE
+# 362.62
+result_S23_bayesR$correlation
+# 0.87
+
+result2_S23_bayesR <- bayesR_model(train_data = sampled1_S23, test_data = sampled2_S23, target_variable= "Grain.yield", )
+result2_S23_bayesR$RMSE
+# 358.33
+result2_S23_bayesR$correlation
+# 0.87
+
+#Making the prediction
+result_S22_bayesR <-bayesR_model(train_data = sampled2_S22, test_data = sampled1_S22,  target_variable= "Grain.yield", )
+result_S22_bayesR$RMSE
+# 391.07
+result_S22_bayesR$correlation
+# 0.57
+
+
+result2_S22_bayesR <- bayesR_model(train_data = sampled1_S22, test_data = sampled2_S22, target_variable= "Grain.yield", )
+result2_S22_bayesR$RMSE
+# 381.56
+result2_S22_bayesR$correlation
+# 0.67
+
+```
+
+```{r lineal lasso}
+#Making the prediction
+result_N23_ll <-lineal_model(train_data = sampled2_N23, test_data = sampled1_N23,  target_variable= "Grain.yield", alpha_value = 1 )
+result_N23_ll$RMSE
+#467.31
+result_N23_ll$correlation
+#0.56
+
+result2_N23_ll <- lineal_model(train_data = sampled1_N23, test_data = sampled2_N23, target_variable= "Grain.yield", alpha_value = 1)
+result2_N23_ll$RMSE
+# 458.58
+result2_N23_ll$correlation
+#0.55
+
+
+#Making the prediction
+result_N22_ll <-lineal_model(train_data = sampled2_N22, test_data = sampled1_N22,  target_variable= "Grain.yield", alpha_value = 1)
+result_N22_ll$RMSE
+# 363.73
+result_N22_ll$correlation
+# 0.78
+
+result2_N22_ll <- lineal_model(train_data = sampled1_N22, test_data = sampled2_N22, target_variable= "Grain.yield", alpha_value = 1)
+result2_N22_ll$RMSE
+# 366.37
+result2_N22_ll$correlation
+# 0.78
+
+
+#Making the prediction
+result_U23_ll <-lineal_model(train_data = sampled2_U23, test_data = sampled1_U23,  target_variable= "Grain.yield", alpha_value = 1)
+result_U23_ll$RMSE
+# 548.81
+result_U23_ll$correlation
+# 0.79
+
+result2_U23_ll <- lineal_model(train_data = sampled1_U23, test_data = sampled2_U23, target_variable= "Grain.yield", alpha_value = 1)
+result2_U23_ll$RMSE
+# 637.49
+result2_U23_ll$correlation
+# 0.71
+
+#Making the prediction
+result_U22_ll <-lineal_model(train_data = sampled2_U22, test_data = sampled1_U22,  target_variable= "Grain.yield", alpha_value = 1)
+result_U22_ll$RMSE
+# 389.63
+result_U22_ll$correlation
+# 0.79
+
+
+result2_U22_ll <- lineal_model(train_data = sampled1_U22, test_data = sampled2_U22, target_variable= "Grain.yield", alpha_value = 1)
+result2_U22_ll$RMSE
+# 471.55
+result2_U22_ll$correlation
+# 0.71
+
+
+#Making the prediction
+result_S23_ll <-lineal_model(train_data = sampled2_S23, test_data = sampled1_S23,  target_variable= "Grain.yield", alpha_value = 1)
+result_S23_ll$RMSE
+# 347.24
+result_S23_ll$correlation
+# 0.88
+
+result2_S23_ll <- lineal_model(train_data = sampled1_S23, test_data = sampled2_S23, target_variable= "Grain.yield", alpha_value = 1)
+result2_S23_ll$RMSE
+# 352.87
+result2_S23_ll$correlation
+# 0.87
+
+#Making the prediction
+result_S22_ll <-lineal_model(train_data = sampled2_S22, test_data = sampled1_S22,  target_variable= "Grain.yield", alpha_value = 1)
+result_S22_ll$RMSE
+# 391.08
+result_S22_ll$correlation
+# 0.57
+
+
+result2_S22_ll <- lineal_model(train_data = sampled1_S22, test_data = sampled2_S22, target_variable= "Grain.yield", alpha_value = 1)
+result2_S22_ll$RMSE
+# 381.17
+result2_S22_ll$correlation
+# 0.67
+
+```
+
+```{r lineal ridge}
+#Making the prediction
+result_N23_lr <-lineal_model(train_data = sampled2_N23, test_data = sampled1_N23,  target_variable= "Grain.yield", alpha_value = 0 )
+result_N23_lr$RMSE
+
+result_N23_lr$correlation
+
+result2_N23_lr <- lineal_model(train_data = sampled1_N23, test_data = sampled2_N23, target_variable= "Grain.yield", alpha_value = 0)
+result2_N23_lr$RMSE
+
+result2_N23_lr$correlation
+
+
+#Making the prediction
+result_N22_lr <-lineal_model(train_data = sampled2_N22, test_data = sampled1_N22,  target_variable= "Grain.yield", alpha_value = 0)
+result_N22_lr$RMSE
+
+result_N22_lr$correlation
+
+result2_N22_lr <- lineal_model(train_data = sampled1_N22, test_data = sampled2_N22, target_variable= "Grain.yield", alpha_value = 0)
+result2_N22_lr$RMSE
+
+result2_N22_lr$correlation
+
+
+#Making the prediction
+result_U23_lr <-lineal_model(train_data = sampled2_U23, test_data = sampled1_U23,  target_variable= "Grain.yield", alpha_value = 0)
+result_U23_lr$RMSE
+
+result_U23_lr$correlation
+
+result2_U23_lr <- lineal_model(train_data = sampled1_U23, test_data = sampled2_U23, target_variable= "Grain.yield", alpha_value = 0)
+result2_U23_lr$RMSE
+
+result2_U23_lr$correlation
+
+#Making the prediction
+result_U22_lr <-lineal_model(train_data = sampled2_U22, test_data = sampled1_U22,  target_variable= "Grain.yield", alpha_value = 0)
+result_U22_lr$RMSE
+
+result_U22_lr$correlation
+
+
+result2_U22_lr <- lineal_model(train_data = sampled1_U22, test_data = sampled2_U22, target_variable= "Grain.yield", alpha_value = 0)
+result2_U22_lr$RMSE
+
+result2_U22_lr$correlation
+
+
+#Making the prediction
+result_S23_lr <-lineal_model(train_data = sampled2_S23, test_data = sampled1_S23,  target_variable= "Grain.yield", alpha_value = 0)
+result_S23_lr$RMSE
+
+result_S23_lr$correlation
+
+result2_S23_lr <- lineal_model(train_data = sampled1_S23, test_data = sampled2_S23, target_variable= "Grain.yield", alpha_value = 0)
+result2_S23_lr$RMSE
+
+result2_S23_lr$correlation
+
+#Making the prediction
+result_S22_lr <-lineal_model(train_data = sampled2_S22, test_data = sampled1_S22,  target_variable= "Grain.yield", alpha_value = 0)
+result_S22_lr$RMSE
+
+result_S22_lr$correlation
+
+
+result2_S22_lr <- lineal_model(train_data = sampled1_S22, test_data = sampled2_S22, target_variable= "Grain.yield", alpha_value = 0)
+result2_S22_lr$RMSE
+
+result2_S22_lr$correlation
+
+```
+
+```{r lineal elastinet}
+#Making the prediction
+result_N23_le <-lineal_model(train_data = sampled2_N23, test_data = sampled1_N23,  target_variable= "Grain.yield", alpha_value = 0.5 )
+result_N23_le$RMSE
+
+result_N23_le$correlation
+
+
+result2_N23_le <- lineal_model(train_data = sampled1_N23, test_data = sampled2_N23, target_variable= "Grain.yield", alpha_value = 0.5)
+result2_N23_le$RMSE
+
+result2_N23_le$correlation
+
+
+#Making the prediction
+result_N22_le <-lineal_model(train_data = sampled2_N22, test_data = sampled1_N22,  target_variable= "Grain.yield", alpha_value = 0.5)
+result_N22_le$RMSE
+
+result_N22_le$correlation
+
+result2_N22_le <- lineal_model(train_data = sampled1_N22, test_data = sampled2_N22, target_variable= "Grain.yield", alpha_value = 0.5)
+result2_N22_le$RMSE
+
+result2_N22_le$correlation
+
+
+#Making the prediction
+result_U23_le <-lineal_model(train_data = sampled2_U23, test_data = sampled1_U23,  target_variable= "Grain.yield", alpha_value = 0.5)
+result_U23_le$RMSE
+
+result_U23_le$correlation
+
+result2_U23_le <- lineal_model(train_data = sampled1_U23, test_data = sampled2_U23, target_variable= "Grain.yield", alpha_value = 0.5)
+result2_U23_le$RMSE
+
+result2_U23_le$correlation
+
+#Making the prediction
+result_U22_le <-lineal_model(train_data = sampled2_U22, test_data = sampled1_U22,  target_variable= "Grain.yield", alpha_value = 0.5)
+result_U22_le$RMSE
+
+result_U22_le$correlation
+
+
+result2_U22_le <- lineal_model(train_data = sampled1_U22, test_data = sampled2_U22, target_variable= "Grain.yield", alpha_value = 0.5)
+result2_U22_le$RMSE
+
+result2_U22_le$correlation
+
+
+#Making the prediction
+result_S23_le <-lineal_model(train_data = sampled2_S23, test_data = sampled1_S23,  target_variable= "Grain.yield", alpha_value = 0.5)
+result_S23_le$RMSE
+
+result_S23_le$correlation
+
+result2_S23_le <- lineal_model(train_data = sampled1_S23, test_data = sampled2_S23, target_variable= "Grain.yield", alpha_value = 0.5)
+result2_S23_le$RMSE
+
+result2_S23_le$correlation
+
+#Making the prediction
+result_S22_le <-lineal_model(train_data = sampled2_S22, test_data = sampled1_S22,  target_variable= "Grain.yield", alpha_value = 0.5)
+result_S22_le$RMSE
+
+result_S22_le$correlation
+
+
+result2_S22_le <- lineal_model(train_data = sampled1_S22, test_data = sampled2_S22, target_variable= "Grain.yield", alpha_value = 0.5)
+result2_S22_le$RMSE
+
+result2_S22_le$correlation
+
+```
+

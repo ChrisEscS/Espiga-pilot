@@ -1,0 +1,1267 @@
+---
+title: "Untitled"
+author: "Christian Escoto"
+date: "2025-07-01"
+output: pdf_document
+---
+
+
+```{r}
+library(dplyr)
+library(asreml)
+```
+
+
+Load the data
+```{r Data}
+All<-read.csv("All.csv")
+All$X<-NULL
+
+All <- All %>%
+  select(-c(starts_with("julian", ignore.case = FALSE)))
+
+All <- All %>%
+  select(-c(starts_with("temps5", ignore.case = FALSE)))
+
+All <- All %>%
+  select(-c(starts_with("cuml", ignore.case = FALSE)))
+
+```
+
+
+
+```{r cars}
+N22<-All%>%
+  filter(Location=="Neoga 2022")
+
+N23<-All%>%
+  filter(Location=="Neoga 2023")
+# Replace infinite values with NA
+N23[sapply(N23, is.infinite)] <- NA
+
+N23<-na.omit(N23)
+
+U22<-All%>%
+  filter(Location=="Urbana 2022")
+U22[sapply(U22, is.infinite)] <- NA
+
+U22<-na.omit(U22)
+
+U23<-All%>%
+  filter(Location=="Urbana 2023")
+U23[sapply(U23, is.infinite)] <- NA
+
+U23<-na.omit(U23)
+
+U23[sapply(U23, is.nan)] <- NA
+
+U23<-na.omit(U23)
+
+S22<-All%>%
+  filter(Location=="St. Peter 2022")
+
+S23<-All%>%
+  filter(Location=="St. Peter 2023")
+```
+
+Now we are going to get a 80% percent 
+```{r N23}
+# Calculate the sample size (80% of the filtered rows)
+sample1_N23 <- ceiling(0.2 * nrow(N23))
+
+# Take a random sample of 80%
+set.seed(123)  # Set seed for reproducibility
+sampled1_N23<- N23[sample(nrow(N23), sample1_N23), ]
+
+# Remove the sampled rows from the original data frame
+sampled2_N23_copy <- N23[!rownames(N23) %in% rownames(sampled1_N23), ]
+# Remove the sampled rows from the original data frame
+sampled2_N23 <- N23[!rownames(N23) %in% rownames(sampled1_N23), ]
+
+#Eliminate the unnecesary 
+sampled2_N23$Location<-NULL
+sampled2_N23$Unit<-NULL
+sampled1_N23$Location<-NULL
+sampled1_N23$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_N23.1<-sampled1_N23
+sampled1_N23.1$Grain.yield<-NULL
+
+sampled2_N23<-sapply(sampled2_N23, as.numeric)
+sampled1_N23.1<-sapply(sampled1_N23.1, as.numeric)
+
+sampled2_N23[is.infinite(sampled2_N23)]<-0
+sampled2_N23[is.nan(sampled2_N23)]<-0
+sampled2_N23[is.na(sampled2_N23)]<-0
+
+sampled1_N23.1<-as.data.frame(sampled1_N23.1)
+sampled2_N23<-as.data.frame(sampled2_N23)
+
+```
+
+```{r N22}
+# Calculate the sample size (80% of the filtered rows)
+sample1_N22 <- ceiling(0.2 * nrow(N22))
+
+# Take a random sample of 80%
+set.seed(123)  # Set seed for reproducibility
+sampled1_N22<- N22[sample(nrow(N22), sample1_N22), ]
+
+sampled2_N22_copy <- N22[!rownames(N22) %in% rownames(sampled1_N22), ]
+# Remove the sampled rows from the original data frame
+sampled2_N22 <- N22[!rownames(N22) %in% rownames(sampled1_N22), ]
+
+#Eliminate the unnecesary 
+sampled2_N22$Location<-NULL
+sampled2_N22$Unit<-NULL
+sampled1_N22$Location<-NULL
+sampled1_N22$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_N22.1<-sampled1_N22
+sampled1_N22.1$Grain.yield<-NULL
+
+sampled2_N22<-sapply(sampled2_N22, as.numeric)
+sampled1_N22.1<-sapply(sampled1_N22.1, as.numeric)
+
+sampled2_N22[is.infinite(sampled2_N22)]<-0
+sampled2_N22[is.nan(sampled2_N22)]<-0
+sampled2_N22[is.na(sampled2_N22)]<-0
+
+sampled1_N22.1<-as.data.frame(sampled1_N22.1)
+sampled2_N22<-as.data.frame(sampled2_N22)
+
+```
+
+```{r U23}
+# Calculate the sample size (80% of the filtered rows)
+sample1_U23 <- ceiling(0.2 * nrow(U23))
+
+# Take a random sample of 80%
+set.seed(123)  # Set seed for reproducibility
+sampled1_U23<- U23[sample(nrow(U23), sample1_U23), ]
+
+sampled2_U23_copy <- U23[!rownames(U23) %in% rownames(sampled1_U23), ]
+# Remove the sampled rows from the original data frame
+sampled2_U23 <- U23[!rownames(U23) %in% rownames(sampled1_U23), ]
+
+#Eliminate the unnecesary 
+sampled2_U23$Location<-NULL
+sampled2_U23$Unit<-NULL
+sampled1_U23$Location<-NULL
+sampled1_U23$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_U23.1<-sampled1_U23
+sampled1_U23.1$Grain.yield<-NULL
+
+sampled2_U23<-sapply(sampled2_U23, as.numeric)
+sampled1_U23.1<-sapply(sampled1_U23.1, as.numeric)
+
+sampled2_U23[is.infinite(sampled2_U23)]<-0
+sampled2_U23[is.nan(sampled2_U23)]<-0
+sampled2_U23[is.na(sampled2_U23)]<-0
+
+sampled1_U23.1<-as.data.frame(sampled1_U23.1)
+sampled2_U23<-as.data.frame(sampled2_U23)
+
+```
+
+```{r U22}
+# Calculate the sample size (80% of the filtered rows)
+sample1_U22 <- ceiling(0.2 * nrow(U22))
+
+# Take a random sample of 80%
+set.seed(123)  # Set seed for reproducibility
+sampled1_U22<- U22[sample(nrow(U22), sample1_U22), ]
+
+sampled2_U22_copy <- U22[!rownames(U22) %in% rownames(sampled1_U22), ]
+# Remove the sampled rows from the original data frame
+sampled2_U22 <- U22[!rownames(U22) %in% rownames(sampled1_U22), ]
+
+#Eliminate the unnecesary 
+sampled2_U22$Location<-NULL
+sampled2_U22$Unit<-NULL
+sampled1_U22$Location<-NULL
+sampled1_U22$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_U22.1<-sampled1_U22
+sampled1_U22.1$Grain.yield<-NULL
+
+sampled2_U22<-sapply(sampled2_U22, as.numeric)
+sampled1_U22.1<-sapply(sampled1_U22.1, as.numeric)
+
+sampled2_U22[is.infinite(sampled2_U22)]<-0
+sampled2_U22[is.nan(sampled2_U22)]<-0
+sampled2_U22[is.na(sampled2_U22)]<-0
+
+sampled1_U22.1<-as.data.frame(sampled1_U22.1)
+sampled2_U22<-as.data.frame(sampled2_U22)
+
+```
+
+```{r S23}
+# Calculate the sample size (80% of the filtered rows)
+sample1_S23 <- ceiling(0.2 * nrow(S23))
+
+# Take a random sample of 80%
+set.seed(123)  # Set seed for reproducibility
+sampled1_S23<- S23[sample(nrow(S23), sample1_S23), ]
+
+sampled2_S23_copy <- S23[!rownames(S23) %in% rownames(sampled1_S23), ]
+# Remove the sampled rows from the original data frame
+sampled2_S23 <- S23[!rownames(S23) %in% rownames(sampled1_S23), ]
+
+#Eliminate the unnecesary 
+sampled2_S23$Location<-NULL
+sampled2_S23$Unit<-NULL
+sampled1_S23$Location<-NULL
+sampled1_S23$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_S23.1<-sampled1_S23
+sampled1_S23.1$Grain.yield<-NULL
+
+sampled2_S23<-sapply(sampled2_S23, as.numeric)
+sampled1_S23.1<-sapply(sampled1_S23.1, as.numeric)
+
+sampled2_S23[is.infinite(sampled2_S23)]<-0
+sampled2_S23[is.nan(sampled2_S23)]<-0
+sampled2_S23[is.na(sampled2_S23)]<-0
+
+sampled1_S23.1<-as.data.frame(sampled1_S23.1)
+sampled2_S23<-as.data.frame(sampled2_S23)
+
+```
+
+```{r S22}
+# Calculate the sample size (80% of the filtered rows)
+sample1_S22 <- ceiling(0.2 * nrow(S22))
+
+# Take a random sample of 80%
+set.seed(123)  # Set seed for reproducibility
+sampled1_S22<- S22[sample(nrow(S22), sample1_S22), ]
+
+
+sampled2_S22_copy <- S22[!rownames(S22) %in% rownames(sampled1_S22), ]
+# Remove the sampled rows from the original data frame
+sampled2_S22 <- S22[!rownames(S22) %in% rownames(sampled1_S22), ]
+
+#Eliminate the unnecesary 
+sampled2_S22$Location<-NULL
+sampled2_S22$Unit<-NULL
+sampled1_S22$Location<-NULL
+sampled1_S22$Unit<-NULL
+
+
+#Prepare the data to be used as the test
+sampled1_S22.1<-sampled1_S22
+sampled1_S22.1$Grain.yield<-NULL
+
+sampled2_S22<-sapply(sampled2_S22, as.numeric)
+sampled1_S22.1<-sapply(sampled1_S22.1, as.numeric)
+
+sampled2_S22[is.infinite(sampled2_S22)]<-0
+sampled2_S22[is.nan(sampled2_S22)]<-0
+sampled2_S22[is.na(sampled2_S22)]<-0
+
+sampled1_S22.1<-as.data.frame(sampled1_S22.1)
+sampled2_S22<-as.data.frame(sampled2_S22)
+
+```
+
+Predictions by each model
+```{r catboost}
+#Making the prediction
+result_N23_cat <-cat_model(train_data = sampled1_N23, test_data = sampled2_N23,  target_variable= "Grain.yield", seed = 123)
+result_N23_cat
+result_N23_cat$RMSE
+#472.87
+result_N23_cat$correlation
+#0.51
+
+
+#Making the prediction
+result_N22_cat <-cat_model(train_data = sampled1_N22, test_data = sampled2_N22,  target_variable= "Grain.yield", seed = 123)
+result_N22_cat$RMSE
+# 410.41
+result_N22_cat$correlation
+# 0.7
+
+
+#Making the prediction
+result_U23_cat <-cat_model(train_data = sampled1_U23, test_data = sampled2_U23,  target_variable= "Grain.yield", seed = 123)
+result_U23_cat$RMSE
+#  625.86
+result_U23_cat$correlation
+# 0.72
+
+#Making the prediction
+result_U22_cat <-cat_model(train_data = sampled1_U22, test_data = sampled2_U22,  target_variable= "Grain.yield", seed = 123)
+result_U22_cat$RMSE
+# 481.67
+result_U22_cat$correlation
+# 0.67
+
+#Making the prediction
+result_S23_cat <-cat_model(train_data = sampled1_S23, test_data = sampled2_S23,  target_variable= "Grain.yield", seed = 123)
+result_S23_cat$RMSE
+#   418.37
+result_S23_cat$correlation
+# 0.80
+
+#Making the prediction
+result_S22_cat <-cat_model(train_data = sampled1_S22, test_data = sampled2_S22,  target_variable= "Grain.yield", seed = 123)
+result_S22_cat$RMSE
+# 429.07
+result_S22_cat$correlation
+# 0.52
+
+
+```
+
+```{r mboost}
+
+#Making the prediction
+result_N23_mboost <-mboost_model(train_data = sampled1_N23, test_data = sampled2_N23,  target_variable= "Grain.yield", seed = 123)
+result_N23_mboost$RMSE
+#461.3
+result_N23_mboost$correlation
+#0.54
+
+
+#Making the prediction
+result_N22_mboost <-mboost_model(train_data = sampled1_N22, test_data = sampled2_N22,  target_variable= "Grain.yield", seed = 123)
+result_N22_mboost$RMSE
+# 390
+result_N22_mboost$correlation
+# 0.74
+
+
+#Making the prediction
+result_U23_mboost <-mboost_model(train_data = sampled1_U23, test_data = sampled2_U23,  target_variable= "Grain.yield", seed = 123)
+result_U23_mboost$RMSE
+#  608.6
+result_U23_mboost$correlation
+# 0.74
+
+#Making the prediction
+result_U22_mboost <-mboost_model(train_data = sampled1_U22, test_data = sampled2_U22,  target_variable= "Grain.yield", seed = 123)
+result_U22_mboost$RMSE
+# 463.16
+result_U22_mboost$correlation
+# 0.70
+
+#Making the prediction
+result_S23_mboost <-mboost_model(train_data = sampled1_S23, test_data = sampled2_S23,  target_variable= "Grain.yield", seed = 123)
+result_S23_mboost$RMSE
+# 384.41
+result_S23_mboost$correlation
+# 0.84
+
+#Making the prediction
+result_S22_mboost <-mboost_model(train_data = sampled1_S22, test_data = sampled2_S22,  target_variable= "Grain.yield", seed = 123)
+result_S22_mboost$RMSE
+# 404.17
+result_S22_mboost$correlation
+# 0.63
+
+
+```
+
+```{r pcr}
+#Making the prediction
+result_N23_pcr <-pcr_model(train_data = sampled1_N23, test_data = sampled2_N23,  target_variable= "Grain.yield", seed = 123)
+result_N23_pcr$RMSE
+#476.98
+result_N23_pcr$correlation
+#0.53
+
+#Making the prediction
+result_N22_pcr <-pcr_model(train_data = sampled1_N22, test_data = sampled2_N22,  target_variable= "Grain.yield", seed = 123)
+result_N22_pcr$RMSE
+# 402.34
+result_N22_pcr$correlation
+# 0.72
+
+#Making the prediction
+result_U23_pcr <-pcr_model(train_data = sampled1_U23, test_data = sampled2_U23,  target_variable= "Grain.yield", seed = 123)
+result_U23_pcr$RMSE
+#  622.21
+result_U23_pcr$correlation
+# 0.73
+
+#Making the prediction
+result_U22_pcr <-pcr_model(train_data = sampled1_U22, test_data = sampled2_U22,  target_variable= "Grain.yield", seed = 123)
+result_U22_pcr$RMSE
+# 453.88
+result_U22_pcr$correlation
+# 0.72
+
+#Making the prediction
+result_S23_pcr <-pcr_model(train_data = sampled1_S23, test_data = sampled2_S23,  target_variable= "Grain.yield", seed = 123)
+result_S23_pcr$RMSE
+# 390.86
+result_S23_pcr$correlation
+# 0.84
+
+#Making the prediction
+result_S22_pcr <-pcr_model(train_data = sampled1_S22, test_data = sampled2_S22,  target_variable= "Grain.yield", seed = 123)
+result_S22_pcr$RMSE
+# 421.75
+result_S22_pcr$correlation
+# 0.56
+```
+
+```{r xgb}
+#Making the prediction
+result_N23_xgb <-xgb_model(train_data = sampled1_N23, test_data = sampled2_N23,  target_variable= "Grain.yield", seed = 123)
+result_N23_xgb$RMSE
+#473.13
+result_N23_xgb$correlation
+#0.51
+
+
+#Making the prediction
+result_N22_xgb <-xgb_model(train_data = sampled1_N22, test_data = sampled2_N22,  target_variable= "Grain.yield", seed = 123)
+result_N22_xgb$RMSE
+# 411.73
+result_N22_xgb$correlation
+# 0.7
+
+
+#Making the prediction
+result_U23_xgb <-xgb_model(train_data = sampled1_U23, test_data = sampled2_U23,  target_variable= "Grain.yield", seed = 123)
+result_U23_xgb$RMSE
+#  608.93
+result_U23_xgb$correlation
+# 0.74
+
+#Making the prediction
+result_U22_xgb <-xgb_model(train_data = sampled1_U22, test_data = sampled2_U22,  target_variable= "Grain.yield", seed = 123)
+result_U22_xgb$RMSE
+# 485.22
+result_U22_xgb$correlation
+# 0.68
+
+#Making the prediction
+result_S23_xgb <-xgb_model(train_data = sampled1_S23, test_data = sampled2_S23,  target_variable= "Grain.yield", seed = 123)
+result_S23_xgb$RMSE
+# 424.91
+result_S23_xgb$correlation
+# 0.8
+
+#Making the prediction
+result_S22_xgb <-xgb_model(train_data = sampled1_S22, test_data = sampled2_S22,  target_variable= "Grain.yield", seed = 123)
+result_S22_xgb$RMSE
+# 427.91
+result_S22_xgb$correlation
+# 0.53
+```
+
+```{r rf}
+#Making the prediction
+result_N23_rf <-rf_model(train_data = sampled1_N23, test_data = sampled2_N23,  target_variable= "Grain.yield", seed = 123)
+result_N23_rf$RMSE
+#465.91
+result_N23_rf$correlation
+#0.53
+
+
+#Making the prediction
+result_N22_rf <-rf_model(train_data = sampled1_N22, test_data = sampled2_N22,  target_variable= "Grain.yield", seed = 123)
+result_N22_rf$RMSE
+# 406.75
+result_N22_rf$correlation
+# 0.7
+
+
+#Making the prediction
+result_U23_rf <-rf_model(train_data = sampled1_U23, test_data = sampled2_U23,  target_variable= "Grain.yield", seed = 123)
+result_U23_rf$RMSE
+#  629.45
+result_U23_rf$correlation
+# 0.73
+
+#Making the prediction
+result_U22_rf <-rf_model(train_data = sampled1_U22, test_data = sampled2_U22,  target_variable= "Grain.yield", seed = 123)
+result_U22_rf$RMSE
+# 478.04
+result_U22_rf$correlation
+# 0.68
+
+#Making the prediction
+result_S23_rf <-rf_model(train_data = sampled1_S23, test_data = sampled2_S23,  target_variable= "Grain.yield", seed = 123)
+result_S23_rf$RMSE
+# 414.39
+result_S23_rf$correlation
+# 0.8
+
+#Making the prediction
+result_S22_rf <-rf_model(train_data = sampled1_S22, test_data = sampled2_S22,  target_variable= "Grain.yield", seed = 123)
+result_S22_rf$RMSE
+# 434.95
+result_S22_rf$correlation
+# 0.53
+```
+
+```{r bayesA}
+#Making the prediction
+result_N23_bayesA <-bayesA_model(train_data = sampled1_N23, test_data = sampled2_N23,  target_variable= "Grain.yield")
+result_N23_bayesA$RMSE
+#465.51
+result_N23_bayesA$correlation
+#0.54
+
+#Making the prediction
+result_N22_bayesA <-bayesA_model(train_data = sampled1_N22, test_data = sampled2_N22,  target_variable= "Grain.yield")
+result_N22_bayesA$RMSE
+# 386.48
+result_N22_bayesA$correlation
+# 0.74
+
+#Making the prediction
+result_U23_bayesA <-bayesA_model(train_data = sampled1_U23, test_data = sampled2_U23,  target_variable= "Grain.yield")
+result_U23_bayesA$RMSE
+#  688.6
+result_U23_bayesA$correlation
+# 0.67
+
+#Making the prediction
+result_U22_bayesA <-bayesA_model(train_data = sampled1_U22, test_data = sampled2_U22,  target_variable= "Grain.yield")
+result_U22_bayesA$RMSE
+# 451.40
+result_U22_bayesA$correlation
+# 0.72
+
+#Making the prediction
+result_S23_bayesA <-bayesA_model(train_data = sampled1_S23, test_data = sampled2_S23,  target_variable= "Grain.yield")
+result_S23_bayesA$RMSE
+# 375.94
+result_S23_bayesA$correlation
+# 0.85
+
+#Making the prediction
+result_S22_bayesA <-bayesA_model(train_data = sampled1_S22, test_data = sampled2_S22,  target_variable= "Grain.yield")
+result_S22_bayesA$RMSE
+# 411.43
+result_S22_bayesA$correlation
+# 06053
+```
+
+```{r bayesL}
+#Making the prediction
+result_N23_bayesL <-bayesL_model(train_data = sampled1_N23, test_data = sampled2_N23,  target_variable= "Grain.yield")
+result_N23_bayesL$RMSE
+#461.98
+result_N23_bayesL$correlation
+#0.55
+
+#Making the prediction
+result_N22_bayesL <-bayesL_model(train_data = sampled1_N22, test_data = sampled2_N22,  target_variable= "Grain.yield")
+result_N22_bayesL$RMSE
+# 387.55
+result_N22_bayesL$correlation
+# 0.74
+
+#Making the prediction
+result_U23_bayesL <-bayesL_model(train_data = sampled1_U23, test_data = sampled2_U23,  target_variable= "Grain.yield")
+result_U23_bayesL$RMSE
+#  683.33
+result_U23_bayesL$correlation
+# 0.68
+
+#Making the prediction
+result_U22_bayesL <-bayesL_model(train_data = sampled1_U22, test_data = sampled2_U22,  target_variable= "Grain.yield")
+result_U22_bayesL$RMSE
+# 452.18
+result_U22_bayesL$correlation
+# 0.72
+
+#Making the prediction
+result_S23_bayesL <-bayesL_model(train_data = sampled1_S23, test_data = sampled2_S23,  target_variable= "Grain.yield")
+result_S23_bayesL$RMSE
+# 377.32
+result_S23_bayesL$correlation
+# 0.85
+
+#Making the prediction
+result_S22_bayesL <-bayesL_model(train_data = sampled1_S22, test_data = sampled2_S22,  target_variable= "Grain.yield")
+result_S22_bayesL$RMSE
+# 411.41
+result_S22_bayesL$correlation
+# 06
+```
+
+```{r bayesR}
+#Making the prediction
+result_N23_bayesR <-bayesR_model(train_data = sampled1_N23, test_data = sampled2_N23,  target_variable= "Grain.yield")
+result_N23_bayesR$RMSE
+#465.44
+result_N23_bayesR$correlation
+#0.54
+
+#Making the prediction
+result_N22_bayesR <-bayesR_model(train_data = sampled1_N22, test_data = sampled2_N22,  target_variable= "Grain.yield")
+result_N22_bayesR$RMSE
+# 384.9
+result_N22_bayesR$correlation
+# 0.74
+
+#Making the prediction
+result_U23_bayesR <-bayesR_model(train_data = sampled1_U23, test_data = sampled2_U23,  target_variable= "Grain.yield")
+result_U23_bayesR$RMSE
+#  685.75
+result_U23_bayesR$correlation
+# 0.67
+
+#Making the prediction
+result_U22_bayesR <-bayesR_model(train_data = sampled1_U22, test_data = sampled2_U22,  target_variable= "Grain.yield")
+result_U22_bayesR$RMSE
+# 451.16
+result_U22_bayesR$correlation
+# 0.72
+
+#Making the prediction
+result_S23_bayesR <-bayesR_model(train_data = sampled1_S23, test_data = sampled2_S23,  target_variable= "Grain.yield")
+result_S23_bayesR$RMSE
+# 372.43
+result_S23_bayesR$correlation
+# 0.84
+
+#Making the prediction
+result_S22_bayesR <-bayesR_model(train_data = sampled1_S22, test_data = sampled2_S22,  target_variable= "Grain.yield")
+result_S22_bayesR$RMSE
+# 411.19
+result_S22_bayesR$correlation
+# 0.6
+```
+
+```{r ll}
+#Making the prediction
+result_N23_ll <-lineal_model(train_data = sampled1_N23, test_data = sampled2_N23,  target_variable= "Grain.yield", alpha_value = 1)
+result_N23_ll$RMSE
+#467.23
+result_N23_ll$correlation
+#0.53
+
+#Making the prediction
+result_N22_ll <-lineal_model(train_data = sampled1_N22, test_data = sampled2_N22,  target_variable= "Grain.yield", alpha_value = 1)
+result_N22_ll$RMSE
+# 391.54
+result_N22_ll$correlation
+# 0.73
+
+#Making the prediction
+result_U23_ll <-lineal_model(train_data = sampled1_U23, test_data = sampled2_U23,  target_variable= "Grain.yield", alpha_value = 1)
+result_U23_ll$RMSE
+#  648.2
+result_U23_ll$correlation
+# 0.7
+
+#Making the prediction
+result_U22_ll <-lineal_model(train_data = sampled1_U22, test_data = sampled2_U22,  target_variable= "Grain.yield", alpha_value = 1)
+result_U22_ll$RMSE
+# 451.95
+result_U22_ll$correlation
+# 0.72
+
+#Making the prediction
+result_S23_ll <-lineal_model(train_data = sampled1_S23, test_data = sampled2_S23,  target_variable= "Grain.yield", alpha_value = 1)
+result_S23_ll$RMSE
+# 380.64
+result_S23_ll$correlation
+# 0.84
+
+#Making the prediction
+result_S22_ll <-lineal_model(train_data = sampled1_S22, test_data = sampled2_S22,  target_variable= "Grain.yield", alpha_value = 1)
+result_S22_ll$RMSE
+# 419.04
+result_S22_ll$correlation
+# 0.58
+```
+
+```{r lr}
+#Making the prediction
+result_N23_lr <-lineal_model(train_data = sampled1_N23, test_data = sampled2_N23,  target_variable= "Grain.yield", alpha_value = 1)
+result_N23_lr$RMSE
+#467.23
+result_N23_lr$correlation
+#0.53
+
+#Making the prediction
+result_N22_lr <-lineal_model(train_data = sampled1_N22, test_data = sampled2_N22,  target_variable= "Grain.yield", alpha_value = 1)
+result_N22_lr$RMSE
+# 391.54
+result_N22_lr$correlation
+# 0.73
+
+#Making the prediction
+result_U23_lr <-lineal_model(train_data = sampled1_U23, test_data = sampled2_U23,  target_variable= "Grain.yield", alpha_value = 1)
+result_U23_lr$RMSE
+#  648.2
+result_U23_lr$correlation
+# 0.7
+
+#Making the prediction
+result_U22_lr <-lineal_model(train_data = sampled1_U22, test_data = sampled2_U22,  target_variable= "Grain.yield", alpha_value = 1)
+result_U22_lr$RMSE
+# 451.95
+result_U22_lr$correlation
+# 0.72
+
+#Making the prediction
+result_S23_lr <-lineal_model(train_data = sampled1_S23, test_data = sampled2_S23,  target_variable= "Grain.yield", alpha_value = 1)
+result_S23_lr$RMSE
+# 380.64
+result_S23_lr$correlation
+# 0.84
+
+#Making the prediction
+result_S22_lr <-lineal_model(train_data = sampled1_S22, test_data = sampled2_S22,  target_variable= "Grain.yield", alpha_value = 1)
+result_S22_lr$RMSE
+# 419.04
+result_S22_lr$correlation
+# 0.58
+```
+
+```{r le}
+#Making the prediction
+result_N23_le <-lineal_model(train_data = sampled1_N23, test_data = sampled2_N23,  target_variable= "Grain.yield", alpha_value = 0.5)
+result_N23_le$RMSE
+#467.17
+result_N23_le$correlation
+#0.53
+
+#Making the prediction
+result_N22_le <-lineal_model(train_data = sampled1_N22, test_data = sampled2_N22,  target_variable= "Grain.yield", alpha_value = 0.5)
+result_N22_le$RMSE
+# 390.72
+result_N22_le$correlation
+# 0.74
+
+#Making the prediction
+result_U23_le <-lineal_model(train_data = sampled1_U23, test_data = sampled2_U23,  target_variable= "Grain.yield", alpha_value = 0.5)
+result_U23_le$RMSE
+#  669.55
+result_U23_le$correlation
+# 0.68
+
+#Making the prediction
+result_U22_le <-lineal_model(train_data = sampled1_U22, test_data = sampled2_U22,  target_variable= "Grain.yield", alpha_value = 0.5)
+result_U22_le$RMSE
+# 451.96
+result_U22_le$correlation
+# 0.72
+
+#Making the prediction
+result_S23_le <-lineal_model(train_data = sampled1_S23, test_data = sampled2_S23,  target_variable= "Grain.yield", alpha_value = 0.5)
+result_S23_le$RMSE
+# 380.40
+result_S23_le$correlation
+# 0.84
+
+#Making the prediction
+result_S22_le <-lineal_model(train_data = sampled1_S22, test_data = sampled2_S22,  target_variable= "Grain.yield", alpha_value = 0.5)
+result_S22_le$RMSE
+# 418.33
+result_S22_le$correlation
+# 0.58
+```
+
+Checking the predictions' results in each location
+```{r N22}
+models.N22<- c('result_N22_cat', 'result_N22_mboost', 'result_N22_rf', 'result_N22_xgb', 'result_N22_pcr', 'result_N22_bayesA', 'result_N22_bayesL', 'result_N22_bayesR', 'result_N22_ll', 'result_N22_le', 'result_N22_lr')
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.N22)){
+  pa_vec<- append(pa_vec, get(models.N22[i])$correlation)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.N22, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.N22)){
+  pa_vec<- append(pa_vec, get(models.N22[i])$RMSE)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.N22, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+summary(result_N22_cat$predictions)
+
+summary(result_N22_xgb$predictions)
+
+summary(result_N22_mboost$predictions)
+
+summary(result_N22_rf$predictions)
+
+summary(result_N22_pcr$predictions)
+
+summary(result_N22_bayesA$predictions)
+
+summary(result_N22_bayesL$predictions)
+
+summary(result_N22_le$predictions)
+
+summary(result_N22_lr$predictions)
+
+summary(result_N22_ll$predictions)
+```
+
+```{r N23}
+models.N23<- c('result_N23_cat', 'result_N23_mboost', 'result_N23_rf', 'result_N23_xgb', 'result_N23_pcr', 'result_N23_bayesA', 'result_N23_bayesL', 'result_N23_bayesR', 'result_N23_ll', 'result_N23_le', 'result_N23_lr')
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.N23)){
+  pa_vec<- append(pa_vec, get(models.N23[i])$correlation)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.N23, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.N23)){
+  pa_vec<- append(pa_vec, get(models.N23[i])$RMSE)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.N23, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+summary(result_N23_cat$predictions)
+
+summary(result_N23_xgb$predictions)
+
+summary(result_N23_mboost$predictions)
+
+summary(result_N23_rf$predictions)
+
+summary(result_N23_pcr$predictions)
+
+summary(result_N23_bayesA$predictions)
+
+summary(result_N23_bayesL$predictions)
+
+summary(result_N23_le$predictions)
+
+summary(result_N23_lr$predictions)
+
+summary(result_N23_ll$predictions)
+```
+
+```{r U22}
+models.U22<- c('result_U22_cat', 'result_U22_mboost', 'result_U22_rf', 'result_U22_xgb', 'result_U22_pcr', 'result_U22_bayesA', 'result_U22_bayesL', 'result_U22_bayesR', 'result_U22_ll', 'result_U22_le', 'result_U22_lr')
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.U22)){
+  pa_vec<- append(pa_vec, get(models.U22[i])$correlation)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.U22, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.U22)){
+  pa_vec<- append(pa_vec, get(models.U22[i])$RMSE)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.U22, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+summary(result_U22_cat$predictions)
+
+summary(result_U22_xgb$predictions)
+
+summary(result_U22_mboost$predictions)
+
+summary(result_U22_rf$predictions)
+
+summary(result_U22_pcr$predictions)
+
+summary(result_U22_bayesA$predictions)
+
+summary(result_U22_bayesL$predictions)
+
+summary(result_U22_bayesR$predictions)
+
+summary(result_U22_le$predictions)
+
+summary(result_U22_lr$predictions)
+
+summary(result_U22_ll$predictions)
+```
+
+```{r U23}
+models.U23<- c('result_U23_cat', 'result_U23_mboost', 'result_U23_rf', 'result_U23_xgb', 'result_U23_pcr', 'result_U23_bayesA', 'result_U23_bayesL', 'result_U23_bayesR', 'result_U23_ll', 'result_U23_le', 'result_U23_lr')
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.U23)){
+  pa_vec<- append(pa_vec, get(models.U23[i])$correlation)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.U23, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.U23)){
+  pa_vec<- append(pa_vec, get(models.U23[i])$RMSE)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.U23, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+summary(result_U23_cat$predictions)
+
+summary(result_U23_xgb$predictions)
+
+summary(result_U23_mboost$predictions)
+
+summary(result_U23_rf$predictions)
+
+summary(result_U23_pcr$predictions)
+
+summary(result_U23_bayesA$predictions)
+
+summary(result_U23_bayesL$predictions)
+
+summary(result_U23_bayesR$predictions)
+
+summary(result_U23_le$predictions)
+
+summary(result_U23_lr$predictions)
+
+summary(result_U23_ll$predictions)
+```
+```{r S22}
+models.S22<- c('result_S22_cat', 'result_S22_mboost', 'result_S22_rf', 'result_S22_xgb', 'result_S22_pcr', 'result_S22_bayesA', 'result_S22_bayesL', 'result_S22_bayesR', 'result_S22_ll', 'result_S22_le', 'result_S22_lr')
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.S22)){
+  pa_vec<- append(pa_vec, get(models.S22[i])$correlation)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.S22, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.S22)){
+  pa_vec<- append(pa_vec, get(models.S22[i])$RMSE)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.S22, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+summary(result_S22_cat$predictions)
+
+summary(result_S22_xgb$predictions)
+
+summary(result_S22_mboost$predictions)
+
+summary(result_S22_rf$predictions)
+
+summary(result_S22_pcr$predictions)
+
+summary(result_S22_bayesA$predictions)
+
+summary(result_S22_bayesL$predictions)
+
+summary(result_S22_bayesR$predictions)
+
+summary(result_S22_le$predictions)
+
+summary(result_S22_lr$predictions)
+
+summary(result_S22_ll$predictions)
+```
+
+```{r S23}
+models.S23<- c('result_S23_cat', 'result_S23_mboost', 'result_S23_rf', 'result_S23_xgb', 'result_S23_pcr', 'result_S23_bayesA', 'result_S23_bayesL', 'result_S23_bayesR', 'result_S23_ll', 'result_S23_le', 'result_S23_lr')
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.S23)){
+  pa_vec<- append(pa_vec, get(models.S23[i])$correlation)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.S23, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+#loop to get results into a vector
+pa_vec<-c()
+for(i in 1:length(models.S23)){
+  pa_vec<- append(pa_vec, get(models.S23[i])$RMSE)
+}
+
+#create data frame with model and predictive ability
+Rtable<- data.frame(Model=models.S23, Pred_Ability= pa_vec)
+
+#display table
+knitr::kable(Rtable[order(Rtable$Pred_Ability, decreasing=TRUE),], digits=2, row.names=FALSE)
+
+summary(result_S23_cat$predictions)
+
+summary(result_S23_xgb$predictions)
+
+summary(result_S23_mboost$predictions)
+
+summary(result_S23_rf$predictions)
+
+summary(result_S23_pcr$predictions)
+
+summary(result_S23_bayesA$predictions)
+
+summary(result_S23_bayesL$predictions)
+
+summary(result_S23_bayesR$predictions)
+
+summary(result_S23_le$predictions)
+
+summary(result_S23_lr$predictions)
+
+summary(result_S23_ll$predictions)
+```
+
+Upload the information of the plants in terms of blocks, units, etc.
+```{r Plants info}
+Plant_info<-read.csv("Plant.info.csv")
+```
+
+
+Include all predictions in the same dataframe
+```{r N23}
+sampled2_N23_copy$catboost<-result_N23_cat$predictions
+sampled2_N23_copy$xgboost<-result_N23_xgb$predictions
+sampled2_N23_copy$mboost<-result_N23_mboost$predictions
+sampled2_N23_copy$rf<-result_N23_rf$predictions
+sampled2_N23_copy$pcr<-result_N23_pcr$predictions
+sampled2_N23_copy$bayesA<-result_N23_bayesA$predictions
+sampled2_N23_copy$bayesL<-result_N23_bayesL$predictions
+sampled2_N23_copy$bayesR<-result_N23_bayesR$predictions
+sampled2_N23_copy$le<-result_N23_le$predictions
+sampled2_N23_copy$lr<-result_N23_lr$predictions
+sampled2_N23_copy$ll<-result_N23_ll$predictions
+```
+
+
+Merge with plant information
+```{r}
+N23.All<-merge(sampled2_N23_copy, Plant_info, by="Unit")
+N23.All$Location.y<-NULL
+N23.All<-rename(N23.All, geno = germplasmDbId)
+N23.All<-rename(N23.All, Column=colNumber)
+N23.All<-rename(N23.All, Row=rowNumber)
+N23.All<-rename(N23.All, Rep=replicate)
+
+N23.All$Column<-as.factor(N23.All$Column)
+N23.All$Row<-as.factor(N23.All$Row)
+N23.All$geno<-as.factor(N23.All$geno)
+N23.All$blockNumber<-as.factor(N23.All$blockNumber)
+N23.All$Rep<-as.factor(N23.All$Rep)
+```
+
+
+```{r N22}
+sampled2_N22_copy$catboost<-result_N22_cat$predictions
+sampled2_N22_copy$xgboost<-result_N22_xgb$predictions
+sampled2_N22_copy$mboost<-result_N22_mboost$predictions
+sampled2_N22_copy$rf<-result_N22_rf$predictions
+sampled2_N22_copy$pcr<-result_N22_pcr$predictions
+sampled2_N22_copy$bayesA<-result_N22_bayesA$predictions
+sampled2_N22_copy$bayesL<-result_N22_bayesL$predictions
+sampled2_N22_copy$bayesR<-result_N22_bayesR$predictions
+sampled2_N22_copy$le<-result_N22_le$predictions
+sampled2_N22_copy$lr<-result_N22_lr$predictions
+sampled2_N22_copy$ll<-result_N22_ll$predictions
+```
+
+Merge with plant information
+```{r}
+N22.All<-merge(sampled2_N22_copy, Plant_info, by="Unit")
+N22.All$Location.y<-NULL
+N22.All<-rename(N22.All, geno = germplasmDbId)
+N22.All<-rename(N22.All, Column=colNumber)
+N22.All<-rename(N22.All, Row=rowNumber)
+N22.All<-rename(N22.All, Rep=replicate)
+
+N22.All$Column<-as.factor(N22.All$Column)
+N22.All$Row<-as.factor(N22.All$Row)
+N22.All$geno<-as.factor(N22.All$geno)
+N22.All$blockNumber<-as.factor(N22.All$blockNumber)
+N22.All$Rep<-as.factor(N22.All$Rep)
+
+```
+
+```{r U22}
+sampled2_U22_copy$catboost<-result_U22_cat$predictions
+sampled2_U22_copy$xgboost<-result_U22_xgb$predictions
+sampled2_U22_copy$mboost<-result_U22_mboost$predictions
+sampled2_U22_copy$rf<-result_U22_rf$predictions
+sampled2_U22_copy$pcr<-result_U22_pcr$predictions
+sampled2_U22_copy$bayesA<-result_U22_bayesA$predictions
+sampled2_U22_copy$bayesL<-result_U22_bayesL$predictions
+sampled2_U22_copy$bayesR<-result_U22_bayesR$predictions
+sampled2_U22_copy$le<-result_U22_le$predictions
+sampled2_U22_copy$lr<-result_U22_lr$predictions
+sampled2_U22_copy$ll<-result_U22_ll$predictions
+```
+
+Merge with plant information
+```{r}
+U22.All<-merge(sampled2_U22_copy, Plant_info, by="Unit")
+U22.All$Location.y<-NULL
+U22.All<-rename(U22.All, geno = germplasmDbId)
+U22.All<-rename(U22.All, Column=colNumber)
+U22.All<-rename(U22.All, Row=rowNumber)
+U22.All<-rename(U22.All, Rep=replicate)
+
+U22.All$Column<-as.factor(U22.All$Column)
+U22.All$Row<-as.factor(U22.All$Row)
+U22.All$geno<-as.factor(U22.All$geno)
+U22.All$blockNumber<-as.factor(U22.All$blockNumber)
+U22.All$Rep<-as.factor(U22.All$Rep)
+
+
+```
+
+```{r U23}
+sampled2_U23_copy$catboost<-result_U23_cat$predictions
+sampled2_U23_copy$xgboost<-result_U23_xgb$predictions
+sampled2_U23_copy$mboost<-result_U23_mboost$predictions
+sampled2_U23_copy$rf<-result_U23_rf$predictions
+sampled2_U23_copy$pcr<-result_U23_pcr$predictions
+sampled2_U23_copy$bayesA<-result_U23_bayesA$predictions
+sampled2_U23_copy$bayesL<-result_U23_bayesL$predictions
+sampled2_U23_copy$bayesR<-result_U23_bayesR$predictions
+sampled2_U23_copy$le<-result_U23_le$predictions
+sampled2_U23_copy$lr<-result_U23_lr$predictions
+sampled2_U23_copy$ll<-result_U23_ll$predictions
+```
+
+Merge with plant information
+```{r}
+U23.All<-merge(sampled2_U23_copy, Plant_info, by="Unit")
+U23.All$Location.y<-NULL
+U23.All<-rename(U23.All, geno = germplasmDbId)
+U23.All<-rename(U23.All, Column=colNumber)
+U23.All<-rename(U23.All, Row=rowNumber)
+U23.All<-rename(U23.All, Rep=replicate)
+
+U23.All$Column<-as.factor(U23.All$Column)
+U23.All$Row<-as.factor(U23.All$Row)
+U23.All$geno<-as.factor(U23.All$geno)
+U23.All$blockNumber<-as.factor(U23.All$blockNumber)
+U23.All$Rep<-as.factor(U23.All$Rep)
+```
+
+
+```{r S23}
+sampled2_S23_copy$catboost<-result_S23_cat$predictions
+sampled2_S23_copy$xgboost<-result_S23_xgb$predictions
+sampled2_S23_copy$mboost<-result_S23_mboost$predictions
+sampled2_S23_copy$rf<-result_S23_rf$predictions
+sampled2_S23_copy$pcr<-result_S23_pcr$predictions
+sampled2_S23_copy$bayesA<-result_S23_bayesA$predictions
+sampled2_S23_copy$bayesL<-result_S23_bayesL$predictions
+sampled2_S23_copy$bayesR<-result_S23_bayesR$predictions
+sampled2_S23_copy$le<-result_S23_le$predictions
+sampled2_S23_copy$lr<-result_S23_lr$predictions
+sampled2_S23_copy$ll<-result_S23_ll$predictions
+```
+
+Merge with plant information
+```{r}
+S23.All<-merge(sampled2_S23_copy, Plant_info, by="Unit")
+S23.All$Location.y<-NULL
+S23.All<-rename(S23.All, geno = germplasmDbId)
+S23.All<-rename(S23.All, Column=colNumber)
+S23.All<-rename(S23.All, Row=rowNumber)
+S23.All<-rename(S23.All, Rep=replicate)
+
+S23.All$Column<-as.factor(S23.All$Column)
+S23.All$Row<-as.factor(S23.All$Row)
+S23.All$geno<-as.factor(S23.All$geno)
+S23.All$blockNumber<-as.factor(S23.All$blockNumber)
+S23.All$Rep<-as.factor(S23.All$Rep)
+```
+
+
+```{r S22}
+sampled2_S22_copy$catboost<-result_S22_cat$predictions
+sampled2_S22_copy$xgboost<-result_S22_xgb$predictions
+sampled2_S22_copy$mboost<-result_S22_mboost$predictions
+sampled2_S22_copy$rf<-result_S22_rf$predictions
+sampled2_S22_copy$pcr<-result_S22_pcr$predictions
+sampled2_S22_copy$bayesA<-result_S22_bayesA$predictions
+sampled2_S22_copy$bayesL<-result_S22_bayesL$predictions
+sampled2_S22_copy$bayesR<-result_S22_bayesR$predictions
+sampled2_S22_copy$le<-result_S22_le$predictions
+sampled2_S22_copy$lr<-result_S22_lr$predictions
+sampled2_S22_copy$ll<-result_S22_ll$predictions
+```
+
+Merge with plant information
+```{r}
+S22.All<-merge(sampled2_S22_copy, Plant_info, by="Unit")
+S22.All$Location.y<-NULL
+S22.All<-rename(S22.All, geno = germplasmDbId)
+S22.All<-rename(S22.All, Column=colNumber)
+S22.All<-rename(S22.All, Row=rowNumber)
+S22.All<-rename(S22.All, Rep=replicate)
+
+S22.All$Column<-as.factor(S22.All$Column)
+S22.All$Row<-as.factor(S22.All$Row)
+S22.All$geno<-as.factor(S22.All$geno)
+S22.All$blockNumber<-as.factor(S22.All$blockNumber)
+S22.All$Rep<-as.factor(S22.All$Rep)
+```

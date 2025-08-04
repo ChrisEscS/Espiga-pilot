@@ -1,0 +1,572 @@
+---
+title: "Functions predict"
+author: "Christian Escoto"
+date: "2025-06-19"
+output: pdf_document
+---
+```{r}
+library(dplyr)
+library(ggplot2)
+library("devtools")
+install_github("gbm-developers/gbm3")
+```
+
+
+Upload the data
+```{r unpload the data}
+All<-read.csv("All.csv")
+```
+
+Upload the functions
+```{r functions}
+load("bayesA_model.RData")
+load("bayesL_model.RData")
+load("bayesR_model.RData")
+load("cat_model.RData")
+load("gbm_model.RData")
+load("lineal_model.RData")
+load("mboost_model.RData")
+load("pcr_model.RData")
+load("rf_model.RData")
+load("xgb_model.RData")
+load("visualization.RData")
+```
+
+
+```{r}
+All<-read.csv("All.csv")
+All[,3:60]<-NULL
+All[,177:292]<-NULL
+All$X<-NULL
+```
+
+```{r Locations}
+N22<-All%>%
+  filter(Location=="Neoga 2022")
+# Replace infinite values with NA
+N22[sapply(N22, is.infinite)] <- NA
+
+N22<-na.omit(N22)
+
+
+
+N23<-All%>%
+  filter(Location=="Neoga 2023")
+# Replace infinite values with NA
+N23[sapply(N23, is.infinite)] <- NA
+
+N23<-na.omit(N23)
+
+U22<-All%>%
+  filter(Location=="Urbana 2022")
+U22[sapply(U22, is.infinite)] <- NA
+
+U22<-na.omit(U22)
+
+U23<-All%>%
+  filter(Location=="Urbana 2023")
+
+# Replace infinite values with NA
+U23[sapply(U23, is.infinite)] <- NA
+
+U23<-na.omit(U23)
+
+
+
+S22<-All%>%
+  filter(Location=="St. Peter 2022")
+# Replace infinite values with NA
+S22[sapply(S22, is.infinite)] <- NA
+
+
+
+S23<-All%>%
+  filter(Location=="St. Peter 2023")
+# Replace infinite values with NA
+S23[sapply(S23, is.infinite)] <- NA
+
+S23<-na.omit(S23)
+```
+
+
+```{r N22}
+All.N22<-rbind(N23, U22, U23, S22, S23)
+
+N22.1<-N22
+
+N22.1$Unit<-NULL
+N22.1$Location<-NULL
+
+
+train_data.N22 <- All.N22[!is.na(All.N22$Grain.yield), ]
+
+train_data.N22 <- na.omit(train_data.N22)
+
+
+train_data.N22 <- as.data.frame(lapply(train_data.N22, function(x) as.numeric(as.character(x))))
+
+train_data.N22$Location<-NULL
+train_data.N22$Unit<-NULL
+
+
+# Replace infinite values with NA
+train_data.N22[sapply(train_data.N22, is.infinite)] <- NA
+
+train_data.N22 <- na.omit(train_data.N22)  # Remove rows with NA values
+
+```
+
+```{r N22 separation}
+trainData.N22 <- train_data.N22 
+testData.N22 <- N22.1
+```
+
+```{r N23}
+All.N23<-rbind(N22, U22, U23, S22, S23)
+
+N23.1<-N23
+
+N23.1$Unit<-NULL
+N23.1$Location<-NULL
+
+train_data.N23 <- All.N23[!is.na(All.N23$Grain.yield), ]
+
+train_data.N23 <- na.omit(train_data.N23)
+
+
+train_data.N23 <- as.data.frame(lapply(train_data.N23, function(x) as.numeric(as.character(x))))
+
+train_data.N23$Location<-NULL
+train_data.N23$Unit<-NULL
+
+
+# Replace infinite values with NA
+train_data.N23[sapply(train_data.N23, is.infinite)] <- NA
+
+train_data.N23 <- na.omit(train_data.N23)  # Remove rows with NA values
+
+```
+
+```{r N23 separation}
+trainData.N23 <- train_data.N23 
+testData.N23 <- N23.1
+```
+
+```{r U22}
+All.U22<-rbind(N22, N23, U23, S22, S23)
+
+U22.1<-U22
+
+U22.1$Unit<-NULL
+U22.1$Location<-NULL
+
+train_data.U22 <- All.U22[!is.na(All.U22$Grain.yield), ]
+
+train_data.U22 <- na.omit(train_data.U22)
+
+
+train_data.U22 <- as.data.frame(lapply(train_data.U22, function(x) as.numeric(as.character(x))))
+
+train_data.U22$Location<-NULL
+train_data.U22$Unit<-NULL
+
+
+# Replace infinite values with NA
+train_data.U22[sapply(train_data.U22, is.infinite)] <- NA
+
+train_data.U22 <- na.omit(train_data.U22)  # Remove rows with NA values
+
+```
+
+```{r U22 separation}
+trainData.U22 <- train_data.U22 
+testData.U22 <- U22.1
+```
+
+```{r U23}
+All.U23<-rbind(N22, N23, U22, S22, S23)
+
+U23.1<-U23
+
+U23.1$Unit<-NULL
+U23.1$Location<-NULL
+
+train_data.U23 <- All.U23[!is.na(All.U23$Grain.yield), ]
+
+train_data.U23 <- na.omit(train_data.U23)
+
+
+train_data.U23 <- as.data.frame(lapply(train_data.U23, function(x) as.numeric(as.character(x))))
+
+train_data.U23$Location<-NULL
+train_data.U23$Unit<-NULL
+
+
+# Replace infinite values with NA
+train_data.U23[sapply(train_data.U23, is.infinite)] <- NA
+
+train_data.U23 <- na.omit(train_data.U23)  # Remove rows with NA values
+
+
+```
+
+```{r U23 separation}
+trainData.U23 <- train_data.U23 
+testData.U23 <- U23.1
+```
+
+```{r S22}
+All.S22<-rbind(N22, N23, U22, U23, S23)
+
+S22.1<-S22
+
+S22.1$Unit<-NULL
+S22.1$Location<-NULL
+
+train_data.S22 <- All.S22[!is.na(All.S22$Grain.yield), ]
+
+# Finalize training data
+train_data.S22 <- na.omit(train_data.S22)
+train_data.S22 <- as.data.frame(lapply(train_data.S22, function(x) as.numeric(as.character(x))))
+train_data.S22$Location <- NULL
+train_data.S22$Unit <- NULL
+train_data.S22[sapply(train_data.S22, is.infinite)] <- NA
+train_data.S22 <- na.omit(train_data.S22)
+
+# Finalize test data
+S22.1 <- na.omit(S22.1)  # Remove rows with NA values
+S22.1$Location <- NULL
+S22.1$Unit <- NULL
+S22.1 <- as.data.frame(lapply(S22.1, function(x) as.numeric(as.character(x))))
+S22.1[sapply(S22.1, is.infinite)] <- NA
+S22.1 <- na.omit(S22.1)
+
+```
+
+```{r S22 separation}
+trainData.S22 <- train_data.S22 
+testData.S22 <- S22.1
+```
+
+```{r S23}
+All.S23<-rbind(N22, N23, U22, U23, S22)
+
+S23.1<-S23
+
+S23.1$Unit<-NULL
+S23.1$Location<-NULL
+
+train_data.S23 <- All.S23[!is.na(All.S23$Grain.yield), ]
+
+train_data.S23 <- na.omit(train_data.S23)
+
+
+train_data.S23 <- as.data.frame(lapply(train_data.S23, function(x) as.numeric(as.character(x))))
+
+train_data.S23$Location<-NULL
+train_data.S23$Unit<-NULL
+
+
+# Replace infinite values with NA
+train_data.S23[sapply(train_data.S23, is.infinite)] <- NA
+
+train_data.S23 <- na.omit(train_data.S23)  # Remove rows with NA values
+
+```
+
+```{r S23 separation}
+trainData.S23 <- train_data.S23 
+testData.S23 <- S23.1
+```
+
+
+```{r xgboost complete}
+xg_S3<-xgb_model(trainData.S23, testData.S23, "Grain.yield", seed=123)
+
+xg_S2<-xgb_model(trainData.S22, testData.S22, "Grain.yield", seed=123)
+
+xg_U3<-xgb_model(trainData.U23, testData.U23, "Grain.yield", seed=123)
+
+xg_U2<-xgb_model(trainData.U22, testData.U22, "Grain.yield", seed=123)
+
+xg_N3<-xgb_model(trainData.N23, testData.N23, "Grain.yield", seed=123)
+
+xg_N2<-xgb_model(trainData.N22, testData.N22, "Grain.yield", seed=123)
+
+```
+
+```{r pcr complete}
+pcr_S3<-pcr_model(trainData.S23, testData.S23, "Grain.yield", seed=123)
+
+pcr_S2<-pcr_model(trainData.S22, testData.S22, "Grain.yield", seed=123)
+
+pcr_U3<-pcr_model(trainData.U23, testData.U23, "Grain.yield", seed=123)
+
+pcr_U2<-pcr_model(trainData.U22, testData.U22, "Grain.yield", seed=123)
+
+pcr_N3<-pcr_model(trainData.N23, testData.N23, "Grain.yield", seed=123)
+
+pcr_N2<-pcr_model(trainData.N22, testData.N22, "Grain.yield", seed=123)
+```
+
+```{r rf complete}
+rf_S3<-rf_model(trainData.S23, testData.S23, "Grain.yield", seed=123)
+
+rf_S2<-rf_model(trainData.S22, testData.S22, "Grain.yield", seed=123)
+
+rf_U3<-rf_model(trainData.U23, testData.U23, "Grain.yield", seed=123)
+
+rf_U2<-rf_model(trainData.U22, testData.U22, "Grain.yield", seed=123)
+
+rf_N3<-rf_model(trainData.N23, testData.N23, "Grain.yield", seed=123)
+
+rf_N2<-rf_model(trainData.N22, testData.N22, "Grain.yield", seed=123)
+
+```
+
+```{r catboost complete}
+cat_S3<-cat_model(trainData.S23, testData.S23, "Grain.yield", seed=123)
+
+cat_S2<-cat_model(trainData.S22, testData.S22, "Grain.yield", seed=123)
+
+cat_U3<-cat_model(trainData.U23, testData.U23, "Grain.yield", seed=123)
+
+cat_U2<-cat_model(trainData.U22, testData.U22, "Grain.yield", seed=123)
+
+cat_N3<-cat_model(trainData.N23, testData.N23, "Grain.yield", seed=123)
+
+cat_N2<-cat_model(trainData.N22, testData.N22, "Grain.yield", seed=123)
+
+```
+
+```{r mboost complete}
+
+mb_S3<-mboost_model(trainData.S23, testData.S23, "Grain.yield", seed=123)
+
+mb_S2<-mboost_model(trainData.S22, testData.S22, "Grain.yield", seed=123)
+
+mb_U3<-mboost_model(trainData.U23, testData.U23, "Grain.yield", seed=123)
+
+mb_U2<-mboost_model(trainData.U22, testData.U22, "Grain.yield", seed=123)
+
+mb_N3<-mboost_model(trainData.N23, testData.N23, "Grain.yield", seed=123)
+
+mb_N2<-mboost_model(trainData.N22, testData.N22, "Grain.yield", seed=123)
+```
+
+```{r BayesRidge}
+br_S3<-bayesR_model(trainData.S23, testData.S23, "Grain.yield")
+
+br_S2<-bayesR_model(trainData.S22, testData.S22, "Grain.yield")
+
+br_U3<-bayesR_model(trainData.U23, testData.U23, "Grain.yield")
+
+br_U2<-bayesR_model(trainData.U22, testData.U22, "Grain.yield")
+
+br_N3<-bayesR_model(trainData.N23, testData.N23, "Grain.yield")
+
+br_N2<-bayesR_model(trainData.N22, testData.N22, "Grain.yield")
+```
+
+```{r Bayesian Lasso needs to run}
+bl_S3<-bayesL_model(trainData.S23, testData.S23, "Grain.yield")
+
+bl_S2<-bayesL_model(trainData.S22, testData.S22, "Grain.yield")
+
+bl_U3<-bayesL_model(trainData.U23, testData.U23, "Grain.yield")
+
+bl_U2<-bayesL_model(trainData.U22, testData.U22, "Grain.yield")
+
+bl_N3<-bayesL_model(trainData.N23, testData.N23, "Grain.yield")
+
+bl_N2<-bayesL_model(trainData.N22, testData.N22, "Grain.yield")
+```
+
+```{r BayesA}
+bA_S3<-bayesA_model(trainData.S23, testData.S23, "Grain.yield")
+
+bA_S2<-bayesA_model(trainData.S22, testData.S22, "Grain.yield")
+
+bA_U3<-bayesA_model(trainData.U23, testData.U23, "Grain.yield")
+
+bA_U2<-bayesA_model(trainData.U22, testData.U22, "Grain.yield")
+
+bA_N3<-bayesA_model(trainData.N23, testData.N23, "Grain.yield")
+
+bA_N2<-bayesA_model(trainData.N22, testData.N22, "Grain.yield")
+```
+
+```{r lineal lasso}
+ll_S3<-lineal_model(trainData.S23, testData.S23, "Grain.yield", alpha_value = 1)
+
+ll_S2<-lineal_model(trainData.S22, testData.S22, "Grain.yield", alpha_value = 1)
+
+ll_U3<-lineal_model(trainData.U23, testData.U23, "Grain.yield", alpha_value = 1)
+
+ll_U2<-lineal_model(trainData.U22, testData.U22, "Grain.yield", alpha_value = 1)
+
+ll_N3<-lineal_model(trainData.N23, testData.N23, "Grain.yield", alpha_value = 1)
+
+ll_N2<-lineal_model(trainData.N22, testData.N22, "Grain.yield", alpha_value = 1)
+```
+
+```{r lineaal ridge}
+lr_S3<-lineal_model(trainData.S23, testData.S23, "Grain.yield", alpha_value = 0)
+
+lr_S2<-lineal_model(trainData.S22, testData.S22, "Grain.yield", alpha_value = 0)
+
+lr_U3<-lineal_model(trainData.U23, testData.U23, "Grain.yield", alpha_value = 0)
+
+lr_U2<-lineal_model(trainData.U22, testData.U22, "Grain.yield", alpha_value = 0)
+
+lr_N3<-lineal_model(trainData.N23, testData.N23, "Grain.yield", alpha_value = 0)
+
+lr_N2<-lineal_model(trainData.N22, testData.N22, "Grain.yield", alpha_value = 0)
+```
+
+```{r Elasticnet}
+le_S3<-lineal_model(trainData.S23, testData.S23, "Grain.yield", alpha_value = 0.5)
+
+le_S2<-lineal_model(trainData.S22, testData.S22, "Grain.yield", alpha_value = 0.5)
+
+le_U3<-lineal_model(trainData.U23, testData.U23, "Grain.yield", alpha_value = 0.5)
+
+le_U2<-lineal_model(trainData.U22, testData.U22, "Grain.yield", alpha_value = 0.5)
+
+le_N3<-lineal_model(trainData.N23, testData.N23, "Grain.yield", alpha_value = 0.5)
+
+le_N2<-lineal_model(trainData.N22, testData.N22, "Grain.yield", alpha_value = 0.5)
+```
+
+
+
+```{r Put all prediction together}
+Predictions.N22<-N22
+Predictions.N23<-N23
+
+Predictions.U22<-U22
+Predictions.U23<-U23
+
+Predictions.S22<-S22
+Predictions.S23<-S23
+
+#Elastinet
+Predictions.N22$Elasticnet<-le_N2$predictions
+Predictions.N23$Elasticnet<-le_N3$predictions
+
+Predictions.S22$Elasticnet<-le_S2$predictions
+Predictions.S23$Elasticnet<-le_S3$predictions
+
+Predictions.U22$Elasticnet<-le_U2$predictions
+Predictions.U23$Elasticnet<-le_U3$predictions
+
+#Ridge
+Predictions.N22$Ridge<-lr_N2$predictions
+Predictions.N23$Ridge<-lr_N3$predictions
+
+Predictions.S22$Ridge<-lr_S2$predictions
+Predictions.S23$Ridge<-lr_S3$predictions
+
+Predictions.U22$Ridge<-lr_U2$predictions
+Predictions.U23$Ridge<-lr_U3$predictions
+
+#Lasso
+Predictions.N22$Lasso<-ll_N2$predictions
+Predictions.N23$Lasso<-ll_N3$predictions
+
+Predictions.S22$Lasso<-ll_S2$predictions
+Predictions.S23$Lasso<-ll_S3$predictions
+
+Predictions.U22$Lasso<-ll_U2$predictions
+Predictions.U23$Lasso<-ll_U3$predictions
+
+#BayesA
+Predictions.N22$BayesA<-bA_N2$predictions
+Predictions.N23$BayesA<-bA_N3$predictions
+
+Predictions.S22$BayesA<-bA_S2$predictions
+Predictions.S23$BayesA<-bA_S3$predictions
+
+Predictions.U22$BayesA<-bA_U2$predictions
+Predictions.U23$BayesA<-bA_U3$predictions
+
+#Bayes Ridge
+Predictions.N22$BayesRid<-br_N2$predictions
+Predictions.N23$BayesRid<-br_N3$predictions
+
+Predictions.S22$BayesRid<-br_S2$predictions
+Predictions.S23$BayesRid<-br_S3$predictions
+
+Predictions.U22$BayesRid<-br_U2$predictions
+Predictions.U23$BayesRid<-br_U3$predictions
+
+#mboost
+Predictions.N22$Mboost<-mb_N2$predictions
+Predictions.N23$Mboost<-mb_N3$predictions
+
+Predictions.S22$Mboost<-mb_S2$predictions
+Predictions.S23$Mboost<-mb_S3$predictions
+
+Predictions.U22$Mboost<-mb_U2$predictions
+Predictions.U23$Mboost<-mb_U3$predictions
+
+#Catboost
+Predictions.N22$Catboost<-cat_N2$best_predictions
+Predictions.N23$Catboost<-cat_N3$best_predictions
+
+Predictions.S22$Catboost<-cat_S2$best_predictions
+Predictions.S23$Catboost<-cat_S3$best_predictions
+
+Predictions.U22$Catboost<-cat_U2$best_predictions
+Predictions.U23$Catboost<-cat_U3$best_predictions
+
+
+#Random Forest
+Predictions.N22$RandomForest<-rf_N2$predictions
+Predictions.N23$RandomForest<-rf_N3$predictions
+
+Predictions.S22$RandomForest<-rf_S2$predictions
+Predictions.S23$RandomForest<-rf_S3$predictions
+
+Predictions.U22$RandomForest<-rf_U2$predictions
+Predictions.U23$RandomForest<-rf_U3$predictions
+
+#PCR
+Predictions.N22$PCR<-pcr_N2$predictions
+Predictions.N23$PCR<-pcr_N3$predictions
+
+Predictions.S22$PCR<-pcr_S2$predictions
+Predictions.S23$PCR<-pcr_S3$predictions
+
+Predictions.U22$PCR<-pcr_U2$predictions
+Predictions.U23$PCR<-pcr_U3$predictions
+
+
+#PCR
+Predictions.N22$Xg<-xg_N2$predictions
+Predictions.N23$Xg<-xg_N3$predictions
+
+Predictions.S22$Xg<-xg_S2$predictions
+Predictions.S23$Xg<-xg_S3$predictions
+
+Predictions.U22$Xg<-xg_U2$predictions
+Predictions.U23$Xg<-xg_U3$predictions
+
+
+
+#All predictions
+PredictionsAll<-rbind(Predictions.N22, Predictions.N23)
+PredictionsAll<-rbind(PredictionsAll, Predictions.U22)
+PredictionsAll<-rbind(PredictionsAll, Predictions.U23)
+PredictionsAll<-rbind(PredictionsAll, Predictions.S22)
+PredictionsAll<-rbind(PredictionsAll, Predictions.S23)
+
+Plants_info$X<-NULL
+
+library(dplyr)
+
+PredictionsAll<- inner_join(PredictionsAll, Plants_info, by = c("Location", "Unit"))
+
+write.csv(PredictionsAll, "PredictionsAll.csv")
+
+```
