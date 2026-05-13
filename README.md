@@ -33,7 +33,9 @@ Espiga integrates the following predictive methods under a unified syntax:
 
 ## Example of use prediction 
 
-Espiga simplifies the application of complex methods with a consistent syntax:
+Espiga has function to two possible scenarios. We have two different scenarios and process to proceed. The first scenario, full location information is available, performing imputations using ML, which is leveraged for data augmentation or to complete datasets for use in mixed models. The second scenario addresses incomplete information, where missing values are predicted using machine learning approaches. 
+
+Example first scenario:
 
 ```r
 library(espiga)
@@ -43,9 +45,9 @@ data(mtcars)
 
 # Divide data into training and test
 set.seed(123)
-indices <- sample(1:nrow(mtcars), size = 0.7*nrow(mtcars))
-train_data <- mtcars[indices, ]
-test_data <- mtcars[-indices, ]
+index <- sample(1:nrow(mtcars), size = 0.7*nrow(mtcars))
+train_data <- mtcars[index, ]
+test_data <- mtcars[-index, ]
 
 xg<-xg_model(train_data, test_data, "hp")
 
@@ -55,6 +57,34 @@ xg$correlation
 
 xg$RMSE
 ```
+Second scenario example:
+
+```r
+library(espiga)
+
+# Load data
+data(mtcars)
+
+# Divide data into training and test
+set.seed(123)
+index <- sample(1:nrow(mtcars), size = 0.5*nrow(mtcars))
+train_data <- mtcars[index, ]
+test_data <- mtcars[-index, ]
+test_data1<-test_data
+
+#Eliminate target variable for demostration.
+test_data$hp<-NULL
+
+#Run XgBoost model
+xg1<-xgb_model_wot(train_data, test_data, "hp")
+#================================================================================
+# [XGBoost] Eta: 0.010 | MaxDepth: 3 | Subsample: 0.7 | Gamma: 0.10 | Rounds: 200 | RMSE_CV: 389.8322 | Cor_CV: 0.7585
+#================================================================================
+
+pred<-xg1$predictions
+
+```
+
 
 ## Key Features
 
